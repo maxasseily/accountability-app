@@ -64,8 +64,11 @@ export default function SignupScreen() {
     try {
       await signup(name, email, password);
       router.replace('/(app)/home');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+    } catch (error: any) {
+      Alert.alert(
+        'Signup Failed',
+        error.message || 'Failed to create account. Please try again.'
+      );
     } finally {
       setLoading(false);
     }

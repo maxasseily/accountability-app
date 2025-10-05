@@ -111,21 +111,36 @@ router.back();
 
 ## Authentication Flow
 
-The app uses a mock authentication system (frontend-only):
+The app uses **Supabase** for real backend authentication:
 
-1. **AuthContext** (`src/context/AuthContext.tsx`) manages auth state
-2. **Entry point** (`app/index.tsx`) redirects based on `user` state
-3. **Login/Signup** accept any credentials for demo purposes
+1. **AuthContext** (`src/context/AuthContext.tsx`) manages auth state with Supabase
+2. **Supabase client** (`src/lib/supabase.ts`) configured with secure token storage
+3. **Entry point** (`app/index.tsx`) redirects based on `user` state
 4. **Protected routes** in `(app)` group require authentication
 5. **Form validation** uses utilities in `src/utils/validation.ts`
 
-### Adding Supabase (Future Step)
+### Supabase Setup
 
-To integrate real backend:
-1. Install `@supabase/supabase-js` and `expo-secure-store`
-2. Replace mock functions in AuthContext with Supabase calls
-3. Add secure token storage
-4. Implement email verification flow
+**Environment Variables** (`.env`):
+```
+EXPO_PUBLIC_SUPABASE_URL=your-project-url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+**Database Schema**:
+- `profiles` table stores user data (full_name, avatar_url)
+- Row Level Security (RLS) enabled for data protection
+- Automatic profile creation on signup via trigger
+
+**Features**:
+- Email/password authentication
+- Secure session storage with `expo-secure-store`
+- Auto profile creation on signup
+- Password reset via email
+- Session persistence across app restarts
+
+**Development**: Email confirmation disabled in Supabase Auth settings
+**Production**: Enable email confirmation and configure SMTP
 
 ## Editor Configuration
 

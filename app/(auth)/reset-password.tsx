@@ -51,8 +51,11 @@ export default function ResetPasswordScreen() {
           },
         ]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send reset email. Please try again.');
+    } catch (error: any) {
+      Alert.alert(
+        'Reset Failed',
+        error.message || 'Failed to send reset email. Please try again.'
+      );
     } finally {
       setLoading(false);
     }

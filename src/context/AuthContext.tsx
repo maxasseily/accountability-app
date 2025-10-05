@@ -1,4 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+
+interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
 
 interface User {
   id: string;
@@ -9,6 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  session: Session | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -19,63 +29,142 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate checking for existing session on mount
+  // Check for existing session on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      // Simulate async auth check
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoading(false);
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+        if (initialSession) {
+          setSession(initialSession);
+          await loadUserProfile(initialSession.user);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    checkAuth();
+
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+
+        if (newSession?.user) {
+          await loadUserProfile(newSession.user);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) throw error;
+
+      if (profile) {
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      // Fallback to basic user info
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.email?.split('@')[0] || 'User',
+      });
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Mock successful login (accept any credentials for demo)
-    const mockUser: User = {
-      id: '1',
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      name: email.split('@')[0],
-    };
+      password,
+    });
 
-    setUser(mockUser);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data.user) {
+      await loadUserProfile(data.user);
+    }
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Mock successful signup
-    const mockUser: User = {
-      id: '1',
+    const { data, error } = await supabase.auth.signUp({
       email,
-      name,
-    };
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
 
-    setUser(mockUser);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Note: Supabase may require email confirmation
+    // Check if email confirmation is required
+    if (data.user && !data.session) {
+      throw new Error('Please check your email to confirm your account before logging in.');
+    }
+
+    if (data.user) {
+      await loadUserProfile(data.user);
+    }
   };
 
   const logout = async () => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
     setUser(null);
+    setSession(null);
   };
 
   const resetPassword = async (email: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    // In real app, this would send a reset email
-    console.log('Password reset email sent to:', email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'accountability-app://reset-password',
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        session,
         isLoading,
         login,
         signup,

@@ -45,8 +45,8 @@ export default function LoginScreen() {
     try {
       await login(email, password);
       router.replace('/(app)/home');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to login. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Failed to login. Please check your credentials.');
     } finally {
       setLoading(false);
     }
