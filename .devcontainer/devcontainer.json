@@ -30,7 +30,7 @@
     "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
   },
   "mounts": [
-  "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind,readonly"
+  "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind"
 ]
 
 }
