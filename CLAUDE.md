@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a React Native accountability app project currently in the initial setup phase. The project uses a devcontainer-based development environment with Node.js 18.
+This is a React Native accountability app built with Expo and TypeScript. The project uses a devcontainer-based development environment with Node.js 18.
 
 ## Development Environment
 
@@ -16,21 +16,68 @@ The project is configured to run in a devcontainer with:
 
 ## Commands
 
-**Note:** The project is in early setup phase. Once dependencies are added (package.json), the following commands will typically be available:
+- `npm start` - Start Expo development server
+- `npm run android` - Run on Android emulator/device
+- `npm run ios` - Run on iOS simulator/device (requires macOS)
+- `npm run web` - Run in web browser
 
-- `npm install` - Install dependencies (postCreateCommand is configured but currently empty)
-- `npm start` - Start Metro Bundler for React Native
-- `npx react-native run-android` - Run on Android emulator/device
-- `npx react-native run-ios` - Run on iOS simulator/device (requires macOS)
-- `npm test` - Run tests (once configured)
-- `npm run lint` - Run ESLint (once configured)
+## Project Structure
+
+```
+accountability-app/
+├── app/                 # File-based routing (Expo Router)
+│   ├── _layout.tsx      # Root layout
+│   └── index.tsx        # Home screen (/)
+├── src/
+│   ├── components/      # Reusable UI components
+│   └── utils/           # Helper functions, constants, utilities
+├── assets/              # App icons, splash screens, fonts, images
+├── app.json             # Expo configuration
+├── package.json         # Dependencies and scripts
+└── tsconfig.json        # TypeScript configuration
+```
 
 ## Architecture
 
-The codebase structure has not yet been established. This is a greenfield React Native project.
+- **Expo SDK ~54.0** with new architecture enabled
+- **Expo Router v6** for file-based navigation
+- **React 19.1** with React Native 0.81
+- **TypeScript 5.9** with strict mode enabled
+- Minimal setup with no linting or testing configured
+
+## Routing Convention
+
+This project uses **Expo Router** for file-based routing. Routes are automatically generated from the file structure in the `app/` directory.
+
+### Route Examples
+
+- `app/index.tsx` → `/` (home screen)
+- `app/profile.tsx` → `/profile`
+- `app/settings.tsx` → `/settings`
+- `app/user/[id].tsx` → `/user/123` (dynamic route)
+- `app/(tabs)/_layout.tsx` → Tab group layout
+- `app/_layout.tsx` → Root layout (wraps all routes)
+
+### Navigation
+
+```tsx
+import { Link, router } from 'expo-router';
+
+// Using Link component
+<Link href="/profile">Go to Profile</Link>
+
+// Programmatic navigation
+router.push('/settings');
+router.back();
+```
+
+### Layouts
+
+- Use `_layout.tsx` files to define layouts for route groups
+- Layouts can use `<Stack>`, `<Tabs>`, or `<Drawer>` navigators from `expo-router`
 
 ## Editor Configuration
 
 - Format on save is enabled
-- ESLint integration expected once configured
-- TypeScript support included
+- TypeScript strict mode enabled
+- VS Code extensions: React Native, ESLint, TypeScript, Spell Checker, Claude Code
