@@ -1,30 +1,35 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Redirect } from 'expo-router';
+import { useAuth } from '../src/context/AuthContext';
+import GradientBackground from '../src/components/ui/GradientBackground';
+import { colors } from '../src/utils/colors';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Welcome to Accountability App!</Text>
-      <Text style={styles.subtext}>Using Expo Router for navigation</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+export default function IndexScreen() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <GradientBackground>
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </GradientBackground>
+    );
+  }
+
+  // Redirect based on auth state
+  if (user) {
+    return <Redirect href="/(app)/home" />;
+  }
+
+  return <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtext: {
-    fontSize: 14,
-    color: '#666',
+    alignItems: 'center',
   },
 });
