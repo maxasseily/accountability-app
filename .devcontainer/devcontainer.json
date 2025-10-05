@@ -1,0 +1,36 @@
+{
+  "name": "React Native Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "msjsdiag.vscode-react-native",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next",
+        "streetsidesoftware.code-spell-checker",
+        "Anthropic.claude-code"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "postCreateCommand": "",// make this: npm install when project is setup
+  "forwardPorts": [8081],
+  "portsAttributes": {
+    "8081": {
+      "label": "Metro Bundler",
+      "onAutoForward": "silent"
+    }
+  },
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
+  },
+  "mounts": [
+  "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind,readonly"
+]
+
+}
