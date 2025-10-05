@@ -18,7 +18,7 @@
       }
     }
   },
-  "postCreateCommand": "",// make this: npm install when project is setup
+  "postCreateCommand": "npm install",
   "forwardPorts": [8081],
   "portsAttributes": {
     "8081": {
