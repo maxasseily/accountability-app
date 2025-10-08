@@ -14,6 +14,7 @@ CREATE TABLE public.profiles (
   id uuid NOT NULL,
   email text NOT NULL UNIQUE,
   full_name text,
+  rank text DEFAULT 'Beginner',
   avatar_url text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),

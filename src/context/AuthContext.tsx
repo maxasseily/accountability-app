@@ -6,6 +6,7 @@ interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  rank: string | null;
   avatar_url: string | null;
 }
 
@@ -13,6 +14,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  rank: string;
 }
 
 interface AuthContextType {
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check for existing session on mount
   useEffect(() => {
     let mounted = true;
+    let isInitialized = false;
 
     const initializeAuth = async () => {
       try {
@@ -47,8 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(initialSession);
           await loadUserProfile(initialSession.user);
         }
+
+        isInitialized = true;
       } catch (error) {
         console.error('Error initializing auth:', error);
+        isInitialized = true;
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -60,8 +66,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      async (event, newSession) => {
         if (!mounted) return;
+
+        // Skip INITIAL_SESSION and SIGNED_IN events during initialization to avoid duplicate loads
+        if (!isInitialized && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+          return;
+        }
 
         setSession(newSession);
 
@@ -69,6 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadUserProfile(newSession.user);
         } else {
           setUser(null);
+        }
+
+        // Always ensure loading is false after auth state changes
+        if (mounted) {
+          setIsLoading(false);
         }
       }
     );
@@ -80,12 +96,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
-    // Use auth metadata directly - simple and reliable
-    setUser({
-      id: supabaseUser.id,
-      email: supabaseUser.email || '',
-      name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
-    });
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('full_name, rank')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        // Fallback to auth metadata if profile fetch fails
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email || '',
+          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+          rank: 'Noob',
+        });
+        return;
+      }
+
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: profile?.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        rank: profile?.rank || 'Noob',
+      });
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      // Fallback to auth metadata
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        rank: 'Noob',
+      });
+    }
   };
 
   const login = async (email: string, password: string) => {

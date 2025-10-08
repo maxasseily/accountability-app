@@ -124,7 +124,7 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
 
-            <Text style={styles.rankText}>Beginner</Text>
+            <Text style={styles.rankText}>{user?.rank || 'Beginner'}</Text>
           </View>
 
           <View style={styles.card}>
