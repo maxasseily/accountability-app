@@ -85,9 +85,17 @@ export default function HomeScreen() {
 
   return (
     <GradientBackground>
-      <StatusBar style="light" />
+      <StatusBar style="light" hidden={true} />
       <View style={styles.container}>
-        <View style={styles.content}>
+          {/* Statistics Button - Top Right */}
+          <TouchableOpacity
+            style={styles.statsButton}
+            onPress={() => router.push('/(app)/statistics')}
+          >
+            <Text style={styles.statsButtonText}>📊</Text>
+          </TouchableOpacity>
+
+          <View style={styles.content}>
           {/* Profile Section */}
           <View style={styles.profileSection}>
             <Text style={styles.profileName}>{user?.name || 'User'}</Text>
@@ -139,7 +147,26 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    paddingTop: 48,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  statsButton: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.glassLight,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  statsButtonText: {
+    fontSize: 24,
   },
   content: {
     flex: 1,
