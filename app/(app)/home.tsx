@@ -58,18 +58,11 @@ export default function HomeScreen() {
       // Upload to Supabase
       const uploadedPhoto = await uploadDailyPhoto(user.id, image.uri);
 
-      // Clear photo first to force unmount/remount of Image component
-      setTodayPhoto(null);
-
-      // Then set new photo after a brief delay
-      setTimeout(() => {
-        setTodayPhoto({
-          ...uploadedPhoto,
-          uploaded_at: new Date().toISOString(),
-        });
-      }, 100);
-
-      Alert.alert('Success', 'Today\'s photo uploaded successfully!');
+      // Smoothly update the photo
+      setTodayPhoto({
+        ...uploadedPhoto,
+        uploaded_at: new Date().toISOString(),
+      });
     } catch (error) {
       console.error('Error uploading photo:', error);
       Alert.alert('Error', 'Failed to upload photo. Please try again.');
@@ -92,7 +85,7 @@ export default function HomeScreen() {
             style={styles.statsButton}
             onPress={() => router.push('/(app)/statistics')}
           >
-            <Text style={styles.statsButtonText}>📊</Text>
+            <Text style={styles.statsButtonText}>📈</Text>
           </TouchableOpacity>
 
           <View style={styles.content}>
@@ -155,18 +148,26 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 24,
     right: 24,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.glassLight,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderWidth: 2,
+    borderColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 8,
   },
   statsButtonText: {
-    fontSize: 24,
+    fontSize: 28,
+    textShadowColor: colors.accentGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
   },
   content: {
     flex: 1,
