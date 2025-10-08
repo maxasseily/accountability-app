@@ -34,10 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing session on mount
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
         // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
 
         if (initialSession) {
           setSession(initialSession);
@@ -46,7 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -55,6 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        if (!mounted) return;
+
         setSession(newSession);
 
         if (newSession?.user) {
@@ -66,36 +74,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
-
-      if (error) throw error;
-
-      if (profile) {
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          name: profile.full_name || supabaseUser.email?.split('@')[0] || 'User',
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      // Fallback to basic user info
-      setUser({
-        id: supabaseUser.id,
-        email: supabaseUser.email || '',
-        name: supabaseUser.email?.split('@')[0] || 'User',
-      });
-    }
+    // Use auth metadata directly - simple and reliable
+    setUser({
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+    });
   };
 
   const login = async (email: string, password: string) => {
