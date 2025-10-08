@@ -19,9 +19,18 @@ export default function HomeScreen() {
       <StatusBar style="light" />
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.nameText}>{user?.name || 'User'}!</Text>
-          <Text style={styles.emailText}>{user?.email}</Text>
+          {/* Profile Section */}
+          <View style={styles.profileSection}>
+            <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+
+            <View style={styles.imageFrame}>
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.placeholderText}>Photo</Text>
+              </View>
+            </View>
+
+            <Text style={styles.rankText}>Beginner</Text>
+          </View>
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🎯 Accountability Dashboard</Text>
@@ -64,24 +73,50 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  welcomeText: {
-    fontSize: 24,
-    color: colors.textSecondary,
-    marginBottom: 4,
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  nameText: {
+  profileName: {
     fontSize: 42,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 16,
     textShadowColor: colors.accentGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
   },
-  emailText: {
-    fontSize: 16,
+  imageFrame: {
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glassLight,
+    padding: 4,
+    marginBottom: 16,
+  },
+  imagePlaceholder: {
+    flex: 1,
+    borderRadius: 16,
+    backgroundColor: colors.glassDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    fontSize: 18,
     color: colors.textMuted,
-    marginBottom: 40,
+    fontWeight: '600',
+  },
+  rankText: {
+    fontSize: 20,
+    color: colors.accent,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   card: {
     backgroundColor: colors.glassLight,
