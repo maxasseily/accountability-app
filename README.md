@@ -443,12 +443,78 @@ npx expo start -c
 
 ---
 
+## 🗄️ How Database Changes Work (Simple Explanation)
+
+**Think of the database like a filing cabinet** - it stores all the app's information (user accounts, photos, settings, etc.).
+
+### When You Need to Change the Database:
+
+Let's say you want to add a new feature, like "user preferences". You'd need to add a new drawer to the filing cabinet. Here's how it works:
+
+**1. Make Changes Locally (On Your Computer)**
+```bash
+# Start your local copy of the database
+npx supabase start
+
+# Make your changes in the web interface
+# Visit: http://127.0.0.1:54323
+```
+
+Think of this as making a draft on paper - you can experiment safely without affecting anyone else!
+
+**2. Save Your Changes**
+
+When you're happy with your changes, the system creates a "migration file" - it's like writing down instructions for how to update the filing cabinet.
+
+**3. Ask Your Team to Review**
+
+Create a Pull Request (PR) on GitHub. This is like asking your coworkers: "Hey, I want to add this new drawer to our filing cabinet. Does this look good?"
+
+**4. Someone Approves It**
+
+A senior team member reviews your changes and clicks "Approve" in GitHub. They're making sure your new drawer won't mess up the filing system!
+
+**5. It Automatically Updates the Real Database**
+
+Once approved, the system **automatically** updates the production database (the one the app actually uses). Everyone's app now has access to the new feature!
+
+### Why This Is Safe:
+
+- ✅ **You can't accidentally break things** - changes must be approved first
+- ✅ **Everything is backed up** - we can always undo if something goes wrong
+- ✅ **You test locally first** - no experimenting on the real database
+- ✅ **History is saved** - we can see who changed what and when
+
+### Key Commands for Developers:
+
+```bash
+# Start your local database (safe sandbox)
+npx supabase start
+
+# See what's running
+npx supabase status
+
+# Stop the local database
+npx supabase stop
+
+# Create a new change
+npx supabase migration new describe_your_change
+
+# Test your changes locally
+npx supabase db reset
+```
+
+**For more technical details**, see [SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)
+
+---
+
 ## 📚 Advanced Topics
 
 Want to dig deeper? Check these guides:
 
 - **[CLAUDE.md](./CLAUDE.md)** - Complete technical architecture and development guide
-- **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Database schema and setup (for admins)
+- **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Database schema and local development setup
+- **[SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)** - Team workflow for database migrations (detailed)
 
 ---
 
