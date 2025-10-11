@@ -1,5 +1,5 @@
 # .devcontainer/Dockerfile
-FROM node:18-bookworm
+FROM node:20-bookworm
 
 WORKDIR /workspace
 
