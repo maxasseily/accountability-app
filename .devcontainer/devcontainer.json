@@ -50,13 +50,11 @@
       "moby": true
     }
   },
+  "runArgs": ["--env-file", ".env"],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
-  },
-  "remoteEnv": {
-    "SUPABASE_ACCESS_TOKEN": "${localEnv:SUPABASE_ACCESS_TOKEN}"
   },
   "mounts": [
     "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind",
