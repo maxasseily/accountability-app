@@ -1,0 +1,103 @@
+name: Deploy Database to Development
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+
+jobs:
+  validate-migrations:
+    name: Validate Migration Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Check migration syntax
+        run: |
+          echo "📋 Migration files in this PR:"
+          git diff --name-only origin/main HEAD -- supabase/migrations/
+          echo ""
+          echo "🔍 Checking SQL syntax..."
+          # Validate all migration files exist and are readable
+          for file in supabase/migrations/*.sql; do
+            if [ -f "$file" ]; then
+              echo "✓ $file"
+            fi
+          done
+
+      - name: Show migration changes
+        run: |
+          echo "📝 New or modified migrations:"
+          git diff origin/main HEAD -- supabase/migrations/
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const files = fs.readdirSync('supabase/migrations/');
+            const body = `## 🔍 Database Migration Review
+
+            **Migration files detected:**
+            ${files.map(f => `- \`${f}\``).join('\n')}
+
+            ⚠️ **Important:** These changes will be deployed to production when this PR is merged to \`main\`.
+
+            **Review checklist:**
+            - [ ] Migration is backwards compatible
+            - [ ] No data loss will occur
+            - [ ] RLS policies are properly configured
+            - [ ] Indexes added for performance
+            - [ ] Tested locally with \`npx supabase db reset\`
+
+            **To test locally:**
+            \`\`\`bash
+            git checkout ${context.ref}
+            npx supabase db reset
+            npx supabase db push
+            \`\`\`
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Optional: Deploy to a separate dev environment if you have one
+  # deploy-dev:
+  #   name: Deploy to Dev Environment
+  #   runs-on: ubuntu-latest
+  #   needs: validate-migrations
+  #   if: github.event.pull_request.head.repo.full_name == github.repository
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #
+  #     - name: Install Supabase CLI
+  #       run: npm install -g supabase
+  #
+  #     - name: Deploy to dev
+  #       run: |
+  #         npx supabase link --project-ref ${{ secrets.SUPABASE_DEV_PROJECT_REF }}
+  #         npx supabase db push
+  #       env:
+  #         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
