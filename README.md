@@ -339,6 +339,38 @@ npx expo start --tunnel
 
 ---
 
+## 🌳 Graphite Setup (Git Workflow)
+
+This project uses **Graphite** for managing stacked pull requests and improving git workflow.
+
+**Graphite is already installed** in the dev container, but you need to authenticate:
+
+### First-Time Setup
+
+1. **Get your Graphite auth token:**
+   - Go to [graphite.dev/activate](https://graphite.dev/activate)
+   - Sign in with GitHub
+   - Copy your personal auth token
+
+2. **Authenticate in the dev container:**
+   ```bash
+   gt auth --token <your-token-here>
+   ```
+
+3. **You're ready!** Now you can use Graphite commands like:
+   ```bash
+   gt create              # Create a new branch and track it
+   gt submit              # Submit PR(s)
+   gt stack               # See your stack of branches
+   gt log                 # Enhanced git log
+   ```
+
+**Note:** Each team member must authenticate individually with their own token (don't share tokens).
+
+**Learn more:** [Graphite Documentation](https://docs.graphite.dev/)
+
+---
+
 ## 🔧 Useful Commands
 
 ### Working with Dev Containers
