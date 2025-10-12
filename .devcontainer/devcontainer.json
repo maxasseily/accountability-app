@@ -12,9 +12,8 @@
         "ms-vscode.vscode-typescript-next",
         "streetsidesoftware.code-spell-checker",
         "Anthropic.claude-code",
-        "Graphite.gti-vscode"
-        "Anthropic.claude-code",
-        "Graphite.gti-vscode"
+        "Graphite.gti-vscode",
+        "Anthropic.claude-code"
       ],
       "settings": {
         "editor.formatOnSave": true
@@ -64,5 +63,5 @@
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
     "source=supabase-config-${devcontainerId},target=/root/.supabase,type=volume"
-  ],
+  ]
 }
