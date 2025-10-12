@@ -13,6 +13,8 @@
         "streetsidesoftware.code-spell-checker",
         "Anthropic.claude-code",
         "Graphite.gti-vscode"
+        "Anthropic.claude-code",
+        "Graphite.gti-vscode"
       ],
       "settings": {
         "editor.formatOnSave": true
