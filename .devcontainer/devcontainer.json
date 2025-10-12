@@ -13,6 +13,8 @@
         "streetsidesoftware.code-spell-checker",
         "Anthropic.claude-code",
         "Graphite.gti-vscode"
+        "Anthropic.claude-code",
+        "Graphite.gti-vscode"
       ],
       "settings": {
         "editor.formatOnSave": true
@@ -30,8 +32,15 @@
   "features": {
     "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
   },
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+  },
   "mounts": [
-    "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind"
-  ]
-
+    "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind",
+    "source=graphite-config,target=/root/.config/graphite,type=volume",
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
 }
