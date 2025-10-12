@@ -22,25 +22,49 @@
     }
   },
   "postCreateCommand": "npm install",
-  "forwardPorts": [8081],
+  "forwardPorts": [8081, 54321, 54322, 54323, 54324],
   "portsAttributes": {
     "8081": {
       "label": "Metro Bundler",
       "onAutoForward": "silent"
+    },
+    "54321": {
+      "label": "Supabase API",
+      "onAutoForward": "silent"
+    },
+    "54322": {
+      "label": "Supabase DB",
+      "onAutoForward": "silent"
+    },
+    "54323": {
+      "label": "Supabase Studio",
+      "onAutoForward": "notify"
+    },
+    "54324": {
+      "label": "Supabase Inbucket",
+      "onAutoForward": "silent"
     }
   },
   "features": {
-    "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    }
   },
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
+  "remoteEnv": {
+    "SUPABASE_ACCESS_TOKEN": "${localEnv:SUPABASE_ACCESS_TOKEN}"
+  },
   "mounts": [
     "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind",
     "source=graphite-config,target=/root/.config/graphite,type=volume",
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=supabase-config-${devcontainerId},target=/root/.supabase,type=volume"
   ],
 }

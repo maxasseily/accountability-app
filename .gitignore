@@ -41,6 +41,6 @@ yarn-error.*
 /ios
 /android
 
-# Supabase local state
-supabase/.branches
-supabase/.temp
+# Supabase local development
+supabase/.branches/
+supabase/.temp/
