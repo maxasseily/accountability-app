@@ -1,9 +1,7 @@
 import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
 import { Svg, Polyline, Line, Text as SvgText } from 'react-native-svg';
 import GradientBackground from '../../src/components/ui/GradientBackground';
-import Button from '../../src/components/ui/Button';
 import { colors } from '../../src/utils/colors';
 
 // Generate fake credibility data for the last 30 days
@@ -131,15 +129,6 @@ export default function StatisticsScreen() {
           <View style={styles.bottomSection}>
             <Text style={styles.placeholderText}>More stats coming soon...</Text>
           </View>
-
-          {/* Footer with Back button */}
-          <View style={styles.footer}>
-            <Button
-              title="Back to Home"
-              onPress={() => router.back()}
-              variant="outline"
-            />
-          </View>
         </ScrollView>
       </View>
     </GradientBackground>
@@ -216,9 +205,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textMuted,
     fontStyle: 'italic',
-  },
-  footer: {
-    paddingTop: 24,
-    paddingBottom: 24,
   },
 });
