@@ -14,12 +14,12 @@ export default function GroupsScreen() {
 
   const handleLeaveGroup = () => {
     Alert.alert(
-      'Leave Group',
-      'Are you sure you want to leave this group? You will need a new access code to rejoin.',
+      'Warning, you are leaving the group. Are you sure you want to do this?',
+      '',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'No', style: 'cancel' },
         {
-          text: 'Leave',
+          text: 'Yes',
           style: 'destructive',
           onPress: async () => {
             try {

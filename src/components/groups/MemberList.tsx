@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, Image, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useState, useEffect } from 'react';
 import { colors } from '../../utils/colors';
 import type { GroupMemberWithProfile } from '../../types/groups';
+import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 
 interface MemberListProps {
   members: GroupMemberWithProfile[];
@@ -16,21 +18,53 @@ interface MemberItemProps {
 function MemberItem({ member, isCurrentUser }: MemberItemProps) {
   const { profile } = member;
   const displayName = profile.full_name || profile.email.split('@')[0] || 'User';
-  const initials = displayName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const [latestPhoto, setLatestPhoto] = useState<DailyPhoto | null>(null);
+  const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
+
+  // Load the member's latest photo
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPhoto() {
+      try {
+        setIsLoadingPhoto(true);
+        const photo = await getLatestPhotoForUser(member.user_id);
+        if (isMounted) {
+          setLatestPhoto(photo);
+        }
+      } catch (error) {
+        console.error('Error loading member photo:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingPhoto(false);
+        }
+      }
+    }
+
+    loadPhoto();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [member.user_id]);
 
   return (
     <View style={styles.memberItem}>
-      <View style={styles.avatarContainer}>
-        {profile.avatar_url ? (
-          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+      {/* Daily Photo */}
+      <View style={styles.photoContainer}>
+        {isLoadingPhoto ? (
+          <View style={styles.photoPlaceholder}>
+            <ActivityIndicator size="small" color={colors.accent} />
+          </View>
+        ) : latestPhoto ? (
+          <Image
+            source={{ uri: latestPhoto.photo_url }}
+            style={styles.photo}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.photoPlaceholder}>
+            <Text style={styles.photoPlaceholderText}>📷</Text>
           </View>
         )}
         {isCurrentUser && (
@@ -101,31 +135,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
   },
-  avatarContainer: {
+  photoContainer: {
     position: 'relative',
     marginRight: 16,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  photo: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.accent,
   },
-  avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  photoPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
     backgroundColor: colors.glassDark,
     borderWidth: 2,
-    borderColor: colors.accent,
+    borderColor: colors.glassBorder,
+    borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.accent,
+  photoPlaceholderText: {
+    fontSize: 24,
+    opacity: 0.5,
   },
   youBadge: {
     position: 'absolute',

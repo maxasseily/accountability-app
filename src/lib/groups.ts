@@ -92,26 +92,10 @@ export async function getUserGroup(): Promise<GroupWithMembers | null> {
     throw new Error(groupError.message);
   }
 
-  // Get all members with their profiles
+  // Get all members
   const { data: members, error: membersError } = await supabase
     .from('group_members')
-    .select(
-      `
-      id,
-      user_id,
-      group_id,
-      joined_at,
-      profiles (
-        id,
-        email,
-        full_name,
-        avatar_url,
-        created_at,
-        updated_at,
-        rank
-      )
-    `
-    )
+    .select('id, user_id, group_id, joined_at')
     .eq('group_id', membership.group_id)
     .order('joined_at', { ascending: true });
 
@@ -119,13 +103,43 @@ export async function getUserGroup(): Promise<GroupWithMembers | null> {
     throw new Error(membersError.message);
   }
 
+  if (!members || members.length === 0) {
+    return {
+      ...group,
+      members: [],
+      member_count: 0,
+    };
+  }
+
+  // Get profiles for all members
+  const userIds = members.map(m => m.user_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, avatar_url, created_at, updated_at, rank')
+    .in('id', userIds);
+
+  if (profilesError) {
+    throw new Error(profilesError.message);
+  }
+
+  // Create a map of profiles by user_id for easy lookup
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
   // Transform the data to match our types
   const membersWithProfiles: GroupMemberWithProfile[] = members.map((member: any) => ({
     id: member.id,
     user_id: member.user_id,
     group_id: member.group_id,
     joined_at: member.joined_at,
-    profile: member.profiles,
+    profile: profileMap.get(member.user_id) || {
+      id: member.user_id,
+      email: 'unknown@example.com',
+      full_name: null,
+      avatar_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      rank: null,
+    },
   }));
 
   return {
