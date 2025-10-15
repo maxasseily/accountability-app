@@ -59,6 +59,19 @@ export default function AppLayout() {
           ),
         }}
       />
+      {/* Hide nested group routes from tab bar */}
+      <Tabs.Screen
+        name="groups/create"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="groups/join"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }
