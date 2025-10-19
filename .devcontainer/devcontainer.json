@@ -21,29 +21,6 @@
     }
   },
   "postCreateCommand": "npm install",
-  "forwardPorts": [8081, 54321, 54322, 54323, 54324],
-  "portsAttributes": {
-    "8081": {
-      "label": "Metro Bundler",
-      "onAutoForward": "silent"
-    },
-    "54321": {
-      "label": "Supabase API",
-      "onAutoForward": "silent"
-    },
-    "54322": {
-      "label": "Supabase DB",
-      "onAutoForward": "silent"
-    },
-    "54323": {
-      "label": "Supabase Studio",
-      "onAutoForward": "notify"
-    },
-    "54324": {
-      "label": "Supabase Inbucket",
-      "onAutoForward": "silent"
-    }
-  },
   "features": {
     "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -51,7 +28,12 @@
       "moby": true
     }
   },
-  "runArgs": ["--env-file", ".env"],
+  "runArgs": [
+    "--env-file",
+    ".env",
+    "-p",
+    "0.0.0.0:8081:8081"
+  ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
@@ -59,6 +41,7 @@
   },
   "mounts": [
     "source=${env:HOME}/.ssh,target=/root/.ssh,type=bind",
+    "source=${env:HOME}/.expo,target=/root/.expo,type=bind",
     "source=graphite-config,target=/root/.config/graphite,type=volume",
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
