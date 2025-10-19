@@ -165,15 +165,61 @@ cp .env.example .env
 **Add your credentials:**
 
 1. Open the new `.env` file (you'll see it in the file explorer on the left)
-2. You'll see two lines that look like this:
+2. You'll see lines that look like this:
    ```
    EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+   REACT_NATIVE_PACKAGER_HOSTNAME=your-local-computer-IP-address
    ```
-3. **Ask the project owner for the real values** and replace the placeholders
-4. Save the file (`Ctrl+S` or `Cmd+S`)
+3. **Ask the project owner for the Supabase values** and replace those placeholders
+4. **Find your computer's IP address** and add it to `REACT_NATIVE_PACKAGER_HOSTNAME` (see below)
+5. Save the file (`Ctrl+S` or `Cmd+S`)
 
 > **Important:** Never share these credentials or commit the `.env` file to git. It's already set up to be ignored automatically.
+
+### Finding Your Computer's IP Address
+
+**Why do you need this?** Your phone needs to know where to find the development server running on your computer. Without this, Expo won't know how to connect.
+
+**On Mac:**
+1. Open Terminal (outside the dev container - use your Mac's terminal app)
+2. Run: `ifconfig`
+3. Look for the `en0` section
+4. Find the line starting with `inet` (NOT `inet6`)
+5. The IP address looks like `192.168.1.xxx` or `10.0.0.xxx`
+6. Copy this address
+
+Example:
+```
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING>
+    inet 192.168.1.42 netmask 0xffffff00 broadcast 192.168.1.255
+```
+In this example, your IP is `192.168.1.42`
+
+**On Windows:**
+1. Open PowerShell or Command Prompt
+2. Run: `ipconfig`
+3. Look for "Wireless LAN adapter Wi-Fi" (if using WiFi) or "Ethernet adapter" (if using cable)
+4. Find the line that says `IPv4 Address`
+5. The IP address looks like `192.168.1.xxx` or `10.0.0.xxx`
+6. Copy this address
+
+Example:
+```
+Wireless LAN adapter Wi-Fi:
+   IPv4 Address. . . . . . . . . . . : 192.168.1.42
+```
+In this example, your IP is `192.168.1.42`
+
+**Add it to your .env file:**
+```
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42
+```
+
+**Important notes:**
+- Your IP address might change if you restart your router or move to a different WiFi network
+- Make sure your phone is on the **same WiFi network** as your computer
+- If you can't connect later, check if your IP changed and update the `.env` file
 
 ### Step 5: Start the App
 
@@ -187,10 +233,14 @@ You'll see a QR code in the terminal. You have three options:
 
 **Option A: Test on Your Phone (Recommended)**
 1. Install **Expo Go** app on your phone ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
-2. Scan the QR code with your camera (iOS) or the Expo Go app (Android)
-3. The app will load on your phone!
+2. **Make sure your phone is on the same WiFi network as your computer**
+3. Scan the QR code with your camera (iOS) or the Expo Go app (Android)
+4. The app will load on your phone!
 
-> **Can't connect?** Run `npx expo start --tunnel` instead of `npm start`
+> **Can't connect?** Double-check that:
+> - You set `REACT_NATIVE_PACKAGER_HOSTNAME` in your `.env` file (see Step 4 above)
+> - Your phone is on the **same WiFi network** as your computer
+> - Your IP address is correct (it may have changed)
 
 **Option B: Test in Web Browser**
 - Press `w` in the terminal
@@ -302,11 +352,20 @@ All colors are defined in `src/utils/colors.ts` - change them there to change th
 
 ### "Can't connect to Metro bundler" or "Can't connect to server"
 
-**Fix:** Use tunnel mode instead:
-```bash
-# Stop the current server (Ctrl+C)
-npx expo start --tunnel
-```
+This usually means your phone can't find the development server on your computer.
+
+**Fix:**
+1. **Make sure your phone is on the same WiFi network as your computer** (this is the most common issue!)
+2. **Check your IP address hasn't changed:**
+   - On Mac: Run `ifconfig` and look for `inet` under `en0`
+   - On Windows: Run `ipconfig` and look for `IPv4 Address`
+3. **Update your `.env` file** with the correct IP address in `REACT_NATIVE_PACKAGER_HOSTNAME`
+4. **Restart the server:**
+   ```bash
+   # Stop the current server (Ctrl+C)
+   npm start
+   ```
+5. **Scan the QR code again** with your phone
 
 ### "Container build failed" or Docker errors
 
@@ -390,15 +449,14 @@ This project uses **Graphite** for managing stacked pull requests and improving 
 # Start the app
 npm start
 
-# Start with tunnel (if you can't connect from your phone)
-npx expo start --tunnel
-
 # Clear cache and restart (if things are acting weird)
 npx expo start -c
 
 # Stop the app
 # Press Ctrl+C in the terminal
 ```
+
+**Note:** You no longer need to use `--tunnel` mode! The app connects directly to your computer's IP address (configured in `.env`).
 
 ---
 
