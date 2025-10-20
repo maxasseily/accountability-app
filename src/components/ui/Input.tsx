@@ -42,32 +42,33 @@ export default function Input({
           error && styles.inputError,
         ]}
       >
-        <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-          <View style={styles.inputWrapper}>
-            {icon && <View style={styles.iconLeft}>{icon}</View>}
-            <TextInput
-              style={[styles.input, icon && styles.inputWithIcon]}
-              value={value}
-              onChangeText={onChangeText}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry={showPassword}
-              {...props}
-            />
-            {secureTextEntry && (
-              <TouchableOpacity
-                style={styles.iconRight}
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-              >
-                <Text style={styles.eyeIcon}>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
-              </TouchableOpacity>
-            )}
-            {rightIcon && !secureTextEntry && (
-              <View style={styles.iconRight}>{rightIcon}</View>
-            )}
-          </View>
+        <BlurView intensity={20} tint="dark" style={styles.blurContainer} pointerEvents="none">
+          <View style={styles.blurOverlay} />
         </BlurView>
+        <View style={styles.inputWrapper}>
+          {icon && <View style={styles.iconLeft}>{icon}</View>}
+          <TextInput
+            style={[styles.input, icon ? styles.inputWithIcon : undefined]}
+            value={value}
+            onChangeText={onChangeText}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholderTextColor={colors.textMuted}
+            secureTextEntry={showPassword}
+            {...props}
+          />
+          {secureTextEntry && (
+            <TouchableOpacity
+              style={styles.iconRight}
+              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            >
+              <Text style={styles.eyeIcon}>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+            </TouchableOpacity>
+          )}
+          {rightIcon && !secureTextEntry && (
+            <View style={styles.iconRight}>{rightIcon}</View>
+          )}
+        </View>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -91,6 +92,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.inputBorder,
+    position: 'relative',
   },
   inputFocused: {
     borderColor: colors.inputFocus,
@@ -104,11 +106,18 @@ const styles = StyleSheet.create({
     borderColor: colors.inputError,
   },
   blurContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  blurOverlay: {
     flex: 1,
     backgroundColor: colors.glassLight,
   },
   inputWrapper: {
-    flex: 1,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,

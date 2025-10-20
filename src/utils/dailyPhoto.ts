@@ -155,6 +155,31 @@ export async function getTodayPhoto(userId: string): Promise<DailyPhoto | null> 
 }
 
 /**
+ * Get the most recent photo for a specific user (for group members view)
+ */
+export async function getLatestPhotoForUser(userId: string): Promise<DailyPhoto | null> {
+  try {
+    const { data, error } = await supabase
+      .from('daily_photos')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching latest photo for user:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching latest photo:', error);
+    return null;
+  }
+}
+
+/**
  * Delete a daily photo
  */
 export async function deleteDailyPhoto(photoId: string, photoUrl: string): Promise<void> {

@@ -32,6 +32,20 @@ npx supabase db reset
 open http://127.0.0.1:54323
 ```
 
+**⚠️ Storage Buckets Required for Testing:**
+
+If your feature uses Supabase Storage (e.g., photo uploads), you must manually create storage buckets in local Studio:
+
+1. Open Studio: `http://127.0.0.1:54323`
+2. Navigate to **Storage** → **New bucket**
+3. Create buckets matching production (e.g., `daily-photos`)
+4. Configure:
+   - **Public bucket**: Enable if using `getPublicUrl()`
+   - **File size limit**: Match production settings
+   - **Allowed MIME types**: Restrict to expected types (e.g., `image/*`)
+
+**Note:** Storage buckets are NOT created by migrations and must be set up manually in each environment (local, staging, production). Consider documenting required buckets in your README or creating a setup script.
+
 ### 2. **Create Pull Request**
 
 ```bash

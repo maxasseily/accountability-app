@@ -4,9 +4,14 @@ A React Native accountability app built with Expo, TypeScript, and Supabase feat
 
 ## 🚀 Features
 
-- **Authentication**: Email/password login and signup
+- **Authentication**: Email/password login and signup with Supabase
+- **Daily Photo Upload**: Take and upload daily accountability photos
+- **Groups**: Create or join accountability groups with unique 6-digit codes
+- **Group Members View**: See all members' latest photos with real-time updates
 - **Futuristic UI**: Dark theme with gradients and glassmorphism effects
 - **Secure Storage**: Sessions persist across app restarts
+- **Real-time Updates**: Group member photos refresh automatically when you navigate back
+- **Local Development**: Full Supabase local stack with Docker
 - **TypeScript**: Full type safety throughout
 
 ## 📋 What You'll Need
@@ -276,6 +281,35 @@ You'll see a QR code in the terminal. You have three options:
 2. Open it again
 3. You should **still be logged in** - no need to sign in again!
 
+### Test Photo Upload
+
+1. Navigate to the **"Post Photo"** tab (camera icon)
+2. Tap the photo frame
+3. Grant camera/photo permissions when prompted
+4. Select a photo from your gallery
+5. The photo should upload and display in the frame
+6. Try uploading again - it will replace today's photo
+
+### Test Groups
+
+**Create a Group:**
+1. Navigate to the **"Groups"** tab (people icon)
+2. Tap **"Create New Group"**
+3. Enter a group name
+4. A 6-digit join code will be generated (e.g., `123456`)
+5. Share this code with others to invite them
+
+**Join a Group:**
+1. Navigate to the **"Groups"** tab
+2. Tap **"Join Existing Group"**
+3. Enter a 6-digit code from someone who created a group
+4. You'll see all group members and their latest photos
+
+**Test Real-time Updates:**
+1. Upload a photo (Post Photo tab)
+2. Navigate back to the Groups tab
+3. Your new photo should appear automatically - no app reload needed!
+
 ---
 
 ## 📁 Understanding the Code Structure
@@ -284,25 +318,45 @@ Here's where to find things when you start coding:
 
 ```
 accountability-app/
-├── app/                         # All your app screens
-│   ├── (auth)/                  # Login, signup, password reset
+├── app/                         # All your app screens (Expo Router file-based routing)
+│   ├── (auth)/                  # Auth route group (login, signup, password reset)
 │   │   ├── login.tsx           # 👈 Login screen
 │   │   ├── signup.tsx          # 👈 Signup screen
 │   │   └── reset-password.tsx  # 👈 Password reset
-│   └── (app)/                   # Main app (after login)
-│       └── home.tsx            # 👈 Home screen
+│   └── (app)/                   # Protected app route group (requires authentication)
+│       ├── home.tsx            # 👈 Home screen
+│       ├── post-photo.tsx      # 👈 Daily photo upload screen
+│       ├── statistics.tsx      # 👈 User statistics screen
+│       └── groups/             # Group management screens
+│           ├── index.tsx       # 👈 Groups overview (view members)
+│           ├── create.tsx      # 👈 Create new group
+│           └── join.tsx        # 👈 Join existing group
 │
 ├── src/
 │   ├── components/              # Reusable UI pieces
 │   │   ├── ui/                  # Buttons, inputs, backgrounds
-│   │   └── auth/                # Auth-specific components
+│   │   ├── auth/                # Auth-specific components
+│   │   └── groups/              # Group-specific components
+│   │       ├── GroupCard.tsx   # 👈 Group info display
+│   │       ├── MemberList.tsx  # 👈 List of group members with photos
+│   │       └── NoGroupState.tsx # 👈 Empty state UI
 │   ├── context/
-│   │   └── AuthContext.tsx     # 👈 Handles login/logout logic
+│   │   ├── AuthContext.tsx     # 👈 Handles login/logout logic
+│   │   └── GroupContext.tsx    # 👈 Manages group state
 │   ├── lib/
 │   │   └── supabase.ts         # 👈 Database connection
+│   ├── types/
+│   │   └── groups.ts           # 👈 TypeScript types for groups
 │   └── utils/
 │       ├── colors.ts           # 👈 All the theme colors
-│       └── validation.ts       # 👈 Form validation (email, password)
+│       ├── validation.ts       # 👈 Form validation (email, password)
+│       ├── dailyPhoto.ts       # 👈 Photo upload/fetch logic
+│       └── groups.ts           # 👈 Group creation/join logic
+│
+├── supabase/                    # Local Supabase development
+│   ├── migrations/              # 👈 Database schema changes (version controlled)
+│   ├── config.toml             # Local Supabase configuration
+│   └── seed.sql                # Test data for local development
 │
 ├── .env                         # 🔒 Your secret credentials (never commit!)
 └── .env.example                 # Template showing what .env should look like
@@ -313,6 +367,9 @@ accountability-app/
 - **Change colors/theme?** → Edit `src/utils/colors.ts`
 - **New button or input?** → Look in `src/components/ui/`
 - **Modify login logic?** → Check `src/context/AuthContext.tsx`
+- **Change database schema?** → Create migration in `supabase/migrations/`
+- **Photo upload logic?** → Check `src/utils/dailyPhoto.ts`
+- **Group features?** → Look in `src/utils/groups.ts` and `src/context/GroupContext.tsx`
 
 ---
 
@@ -561,6 +618,20 @@ npx supabase migration new describe_your_change
 # Test your changes locally
 npx supabase db reset
 ```
+
+### ⚠️ Important: Storage Buckets for Photo Uploads
+
+When testing photo uploads locally, you must **manually create storage buckets** in Supabase Studio:
+
+1. Start Supabase: `npx supabase start`
+2. Open Studio: `http://127.0.0.1:54323`
+3. Navigate to **Storage** → **New bucket**
+4. Create bucket named `daily-photos` with:
+   - **Public bucket**: ✅ Enabled
+   - **File size limit**: 5MB
+   - **Allowed MIME types**: `image/*`
+
+**Note:** Storage buckets are NOT created by migrations and must be set up manually in each environment (local, staging, production).
 
 **For more technical details**, see [SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)
 
