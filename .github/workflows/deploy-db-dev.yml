@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for comparing with base branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,7 +30,8 @@ jobs:
       - name: Check migration syntax
         run: |
           echo "📋 Migration files in this PR:"
-          git diff --name-only origin/main HEAD -- supabase/migrations/
+          git fetch origin main:main || true
+          git diff --name-only main HEAD -- supabase/migrations/ || echo "Unable to diff with main, showing all migrations:"
           echo ""
           echo "🔍 Checking SQL syntax..."
           # Validate all migration files exist and are readable
@@ -41,7 +44,7 @@ jobs:
       - name: Show migration changes
         run: |
           echo "📝 New or modified migrations:"
-          git diff origin/main HEAD -- supabase/migrations/
+          git diff main HEAD -- supabase/migrations/ || echo "Showing all migration files:"
 
       - name: Comment on PR
         uses: actions/github-script@v7
