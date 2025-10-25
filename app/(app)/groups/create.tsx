@@ -66,6 +66,8 @@ export default function CreateGroupScreen() {
                 onChangeText={setGroupName}
                 placeholder="e.g., Workout Warriors, Study Squad"
                 autoCapitalize="words"
+                autoComplete="off"
+                textContentType="none"
                 maxLength={50}
                 autoFocus={false}
               />

@@ -42,7 +42,7 @@ export default function Input({
           error && styles.inputError,
         ]}
       >
-        <BlurView intensity={20} tint="dark" style={styles.blurContainer} pointerEvents="none">
+        <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
           <View style={styles.blurOverlay} />
         </BlurView>
         <View style={styles.inputWrapper}>
@@ -55,6 +55,9 @@ export default function Input({
             onBlur={() => setIsFocused(false)}
             placeholderTextColor={colors.textMuted}
             secureTextEntry={showPassword}
+            textContentType={props.textContentType ?? 'none'}
+            autoComplete={props.autoComplete ?? 'off'}
+            importantForAutofill={props.importantForAutofill ?? 'no'}
             {...props}
           />
           {secureTextEntry && (

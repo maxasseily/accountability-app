@@ -67,6 +67,8 @@ export default function JoinGroupScreen() {
                 onChangeText={(text) => setAccessCode(text.toUpperCase())}
                 placeholder="e.g., A1B2C3D4"
                 autoCapitalize="characters"
+                autoComplete="off"
+                textContentType="none"
                 maxLength={8}
                 autoFocus={false}
                 autoCorrect={false}

@@ -1,7 +1,10 @@
 import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Svg, Polyline, Line, Text as SvgText } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
+import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
 
 // Generate fake credibility data for the last 30 days
@@ -99,6 +102,9 @@ const SimpleLineChart = ({ data }: { data: any[] }) => {
 };
 
 export default function StatisticsScreen() {
+  const { goal, hasGoal, getProgress } = useGoal();
+  const progress = getProgress();
+
   return (
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
@@ -125,10 +131,73 @@ export default function StatisticsScreen() {
             </View>
           </View>
 
-          {/* Bottom Half - Reserved for future content */}
-          <View style={styles.bottomSection}>
-            <Text style={styles.placeholderText}>More stats coming soon...</Text>
-          </View>
+          {/* Weekly Goal Progress Section */}
+          {hasGoal && goal && progress && (
+            <View style={styles.goalProgressSection}>
+              <Text style={styles.sectionTitle}>Weekly Goal Progress</Text>
+
+              <View style={styles.goalProgressCard}>
+                <View style={styles.goalProgressHeader}>
+                  <View style={styles.goalInfoContainer}>
+                    <Ionicons name="fitness" size={28} color={colors.accent} />
+                    <View>
+                      <Text style={styles.goalType}>Running Goal</Text>
+                      <Text style={styles.goalFrequency}>{goal.frequency}x per week</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.progressBadge}>
+                    <Text style={styles.progressBadgeText}>
+                      {progress.completed}/{progress.total}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View style={styles.progressBarSection}>
+                  <View style={styles.progressBarBackground}>
+                    <LinearGradient
+                      colors={[colors.accent, colors.accentGlow]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${progress.percentage}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercentage}>
+                    {Math.round(progress.percentage)}%
+                  </Text>
+                </View>
+
+                {/* Status Message */}
+                <View style={styles.statusSection}>
+                  <Ionicons
+                    name={progress.completed === progress.total ? "checkmark-circle" : "time-outline"}
+                    size={20}
+                    color={progress.completed === progress.total ? colors.accent : colors.textSecondary}
+                  />
+                  <Text style={[
+                    styles.statusText,
+                    progress.completed === progress.total && styles.statusTextComplete
+                  ]}>
+                    {progress.completed === progress.total
+                      ? "Goal completed this week!"
+                      : `${progress.total - progress.completed} more to reach your goal`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Bottom Section */}
+          {!hasGoal && (
+            <View style={styles.bottomSection}>
+              <Ionicons name="flag-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.placeholderText}>Set a goal to track your progress</Text>
+            </View>
+          )}
         </ScrollView>
       </View>
     </GradientBackground>
@@ -200,10 +269,101 @@ const styles = StyleSheet.create({
   bottomSection: {
     paddingVertical: 40,
     alignItems: 'center',
+    gap: 16,
   },
   placeholderText: {
     fontSize: 16,
     color: colors.textMuted,
     fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  goalProgressSection: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: 16,
+  },
+  goalProgressCard: {
+    backgroundColor: colors.glassLight,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 20,
+  },
+  goalProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  goalInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  goalType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  goalFrequency: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  progressBadge: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  progressBadgeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  progressBarSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  progressBarBackground: {
+    flex: 1,
+    height: 10,
+    backgroundColor: colors.glassDark,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  statusSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.glassBorder,
+  },
+  statusText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  statusTextComplete: {
+    color: colors.accent,
+    fontWeight: '600',
   },
 });

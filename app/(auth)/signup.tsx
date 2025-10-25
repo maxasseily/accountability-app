@@ -63,7 +63,8 @@ export default function SignupScreen() {
 
     try {
       await signup(name, email, password);
-      router.replace('/(app)/home');
+      // Navigate to onboarding after successful signup
+      router.replace('/(onboarding)/goal-selection');
     } catch (error: any) {
       Alert.alert(
         'Signup Failed',
@@ -172,7 +173,7 @@ export default function SignupScreen() {
               <Text style={styles.footerText}>Already have an account? </Text>
               <Link href="/(auth)/login" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.link}>Sign In</Text>
+                  <Text style={styles.link}>Sign Up</Text>
                 </TouchableOpacity>
               </Link>
             </View>
