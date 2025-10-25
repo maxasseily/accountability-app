@@ -42,11 +42,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
 
         if (!mounted) return;
 
-        if (initialSession) {
+        // If there's an error getting the session (e.g., invalid refresh token), clear it
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        } else if (initialSession) {
           setSession(initialSession);
           await loadUserProfile(initialSession.user);
         }
@@ -54,6 +60,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isInitialized = true;
       } catch (error) {
         console.error('Error initializing auth:', error);
+        // Clear any corrupted session data
+        try {
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          console.error('Error signing out:', signOutError);
+        }
+        setSession(null);
+        setUser(null);
         isInitialized = true;
       } finally {
         if (mounted) {

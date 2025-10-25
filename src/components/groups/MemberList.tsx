@@ -1,11 +1,14 @@
 import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import type { GroupMemberWithProfile } from '../../types/groups';
 import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
+import { useGoal } from '../../context/GoalContext';
+import type { UserGoal } from '../../types/goals';
 
 interface MemberListProps {
   members: GroupMemberWithProfile[];
@@ -23,6 +26,9 @@ function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
   const displayName = profile.full_name || profile.email.split('@')[0] || 'User';
   const [latestPhoto, setLatestPhoto] = useState<DailyPhoto | null>(null);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
+  const [memberGoal, setMemberGoal] = useState<UserGoal | null>(null);
+  const [isLoadingGoal, setIsLoadingGoal] = useState(true);
+  const { getUserGoal } = useGoal();
 
   // Load the member's latest photo
   const loadPhoto = useCallback(async () => {
@@ -37,11 +43,25 @@ function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
     }
   }, [member.user_id]);
 
-  // Refresh photo when screen comes into focus
+  // Load the member's goal
+  const loadGoal = useCallback(async () => {
+    try {
+      setIsLoadingGoal(true);
+      const goal = await getUserGoal(member.user_id);
+      setMemberGoal(goal);
+    } catch (error) {
+      console.error('Error loading member goal:', error);
+    } finally {
+      setIsLoadingGoal(false);
+    }
+  }, [member.user_id, getUserGoal]);
+
+  // Refresh photo and goal when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadPhoto();
-    }, [loadPhoto])
+      loadGoal();
+    }, [loadPhoto, loadGoal])
   );
 
   return (
@@ -79,6 +99,22 @@ function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
         <Text style={styles.memberName}>{displayName}</Text>
         {profile.rank && (
           <Text style={styles.memberRank}>{profile.rank}</Text>
+        )}
+      </View>
+
+      {/* Goal Progress */}
+      <View style={styles.goalProgressContainer}>
+        {isLoadingGoal ? (
+          <ActivityIndicator size="small" color={colors.accent} />
+        ) : memberGoal ? (
+          <View style={styles.goalProgressContent}>
+            <Ionicons name="fitness-outline" size={16} color={colors.accent} />
+            <Text style={styles.goalProgressText}>
+              {memberGoal.currentProgress}/{memberGoal.frequency}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.noGoalText}>No goal set</Text>
         )}
       </View>
     </View>
@@ -231,6 +267,32 @@ const styles = StyleSheet.create({
   memberRank: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  goalProgressContainer: {
+    marginLeft: 12,
+    minWidth: 60,
+    alignItems: 'flex-end',
+  },
+  goalProgressContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.glassDark,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  goalProgressText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.accent,
+  },
+  noGoalText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: 'italic',
   },
   separator: {
     height: 1,
