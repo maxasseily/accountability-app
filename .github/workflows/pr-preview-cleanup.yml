@@ -13,10 +13,10 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Generate schema name
         id: schema
@@ -25,21 +25,21 @@ jobs:
           echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
           echo "🗑️  Schema to delete: ${SCHEMA_NAME}"
 
-      - name: Delete preview schema
+      - name: Link to dev project
+        run: supabase link --project-ref vuoucahoqaxpudtbdzjf
         env:
-          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: 6543
-          PGDATABASE: postgres
-          PGUSER: postgres.vuoucahoqaxpudtbdzjf
-          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
-          PGSSLMODE: require
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
+
+      - name: Delete preview schema
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🔥 Deleting schema: ${SCHEMA_NAME}"
-          psql << EOF
-            DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
-          EOF
+          cat > /tmp/cleanup.sql << EOFCLEANUP
+          DROP SCHEMA IF EXISTS $SCHEMA_NAME CASCADE;
+          EOFCLEANUP
+
+          supabase db execute --file /tmp/cleanup.sql --linked
 
           echo "✅ Preview database cleaned up"
 

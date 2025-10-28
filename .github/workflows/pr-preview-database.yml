@@ -30,11 +30,6 @@ jobs:
         with:
           version: latest
 
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
       - name: Generate schema name
         id: schema
         run: |
@@ -43,54 +38,48 @@ jobs:
           echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
           echo "📦 Schema name: ${SCHEMA_NAME}"
 
-      - name: Create isolated schema
+      - name: Link to dev project
+        run: supabase link --project-ref vuoucahoqaxpudtbdzjf
         env:
-          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: 6543
-          PGDATABASE: postgres
-          PGUSER: postgres.vuoucahoqaxpudtbdzjf
-          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
-          PGSSLMODE: require
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
+
+      - name: Create schema and apply migrations
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+          echo "🔧 Creating preview database for schema: ${SCHEMA_NAME}"
 
-          echo "🔧 Creating schema: ${SCHEMA_NAME}"
-          psql << EOF
-            -- Drop and recreate schema for clean state
-            DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
-            CREATE SCHEMA ${SCHEMA_NAME};
+          # Create SQL file that sets up schema and runs migrations
+          cat > /tmp/setup_preview.sql << 'EOFSETUP'
+          -- Drop and recreate schema for clean state
+          DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
+          CREATE SCHEMA ${SCHEMA_NAME};
 
-            -- Grant necessary permissions
-            GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO anon, authenticated, service_role;
-            GRANT ALL ON SCHEMA ${SCHEMA_NAME} TO postgres;
+          -- Grant necessary permissions
+          GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO anon, authenticated, service_role;
+          GRANT ALL ON SCHEMA ${SCHEMA_NAME} TO postgres;
 
-            -- Set search path for this schema
-            ALTER DATABASE postgres SET search_path TO ${SCHEMA_NAME}, public;
-          EOF
+          -- Set search path
+          SET search_path TO ${SCHEMA_NAME}, public;
+          EOFSETUP
 
-          echo "✅ Schema created: ${SCHEMA_NAME}"
+          # Replace placeholder with actual schema name
+          sed -i "s/\${SCHEMA_NAME}/$SCHEMA_NAME/g" /tmp/setup_preview.sql
 
-      - name: Apply migrations to preview schema
-        env:
-          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: 6543
-          PGDATABASE: postgres
-          PGUSER: postgres.vuoucahoqaxpudtbdzjf
-          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
-          PGSSLMODE: require
-        run: |
-          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+          # Apply schema setup
+          echo "📝 Creating schema..."
+          supabase db execute --file /tmp/setup_preview.sql --linked
 
-          echo "🔄 Applying migrations to ${SCHEMA_NAME}..."
-
-          # Apply each migration in order
+          # Apply each migration with schema context
+          echo "🔄 Applying migrations..."
           for migration in supabase/migrations/*.sql; do
             if [ -f "$migration" ]; then
               echo "Applying: $(basename $migration)"
-              psql -v ON_ERROR_STOP=1 << EOF
-                SET search_path TO ${SCHEMA_NAME}, public;
-                \i $migration
-          EOF
+              # Create temp file with SET search_path prepended
+              cat > /tmp/temp_migration.sql << EOFMIG
+          SET search_path TO $SCHEMA_NAME, public;
+          EOFMIG
+              cat "$migration" >> /tmp/temp_migration.sql
+              supabase db execute --file /tmp/temp_migration.sql --linked
             fi
           done
 
@@ -98,21 +87,17 @@ jobs:
 
       - name: Seed preview database
         if: hashFiles('supabase/seed.sql') != ''
-        env:
-          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: 6543
-          PGDATABASE: postgres
-          PGUSER: postgres.vuoucahoqaxpudtbdzjf
-          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
-          PGSSLMODE: require
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🌱 Seeding preview database..."
-          psql -v ON_ERROR_STOP=1 << EOF
-            SET search_path TO ${SCHEMA_NAME}, public;
-            \i supabase/seed.sql
-          EOF
+          # Prepend schema context to seed file
+          cat > /tmp/seed_with_schema.sql << EOFSEED
+          SET search_path TO $SCHEMA_NAME, public;
+          EOFSEED
+          cat supabase/seed.sql >> /tmp/seed_with_schema.sql
+
+          supabase db execute --file /tmp/seed_with_schema.sql --linked
 
           echo "✅ Seed data applied"
 
@@ -205,33 +190,28 @@ jobs:
             }
 
       - name: Validate migrations
-        env:
-          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: 6543
-          PGDATABASE: postgres
-          PGUSER: postgres.vuoucahoqaxpudtbdzjf
-          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
-          PGSSLMODE: require
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🔍 Validating schema structure..."
-          psql << EOF
-            SET search_path TO ${SCHEMA_NAME}, public;
+          cat > /tmp/validate.sql << EOFVALIDATE
+          SET search_path TO $SCHEMA_NAME, public;
 
-            -- List all tables
-            SELECT schemaname, tablename
-            FROM pg_tables
-            WHERE schemaname = '${SCHEMA_NAME}'
-            ORDER BY tablename;
+          -- List all tables
+          SELECT schemaname, tablename
+          FROM pg_tables
+          WHERE schemaname = '$SCHEMA_NAME'
+          ORDER BY tablename;
 
-            -- Check for common issues
-            SELECT 'RLS Enabled' as check,
-                   tablename,
-                   rowsecurity::text as enabled
-            FROM pg_tables
-            WHERE schemaname = '${SCHEMA_NAME}'
-            ORDER BY tablename;
-          EOF
+          -- Check for common issues
+          SELECT 'RLS Enabled' as check,
+                 tablename,
+                 rowsecurity::text as enabled
+          FROM pg_tables
+          WHERE schemaname = '$SCHEMA_NAME'
+          ORDER BY tablename;
+          EOFVALIDATE
+
+          supabase db execute --file /tmp/validate.sql --linked
 
           echo "✅ Validation complete"
