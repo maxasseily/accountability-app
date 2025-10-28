@@ -1,0 +1,231 @@
+name: PR Preview Database
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/seed.sql'
+
+jobs:
+  preview-database:
+    name: Create/Update Preview Database
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Generate schema name
+        id: schema
+        run: |
+          # Use PR number for schema name (e.g., pr_123)
+          SCHEMA_NAME="pr_${{ github.event.pull_request.number }}"
+          echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
+          echo "📦 Schema name: ${SCHEMA_NAME}"
+
+      - name: Create isolated schema
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          echo "🔧 Creating schema: ${SCHEMA_NAME}"
+          psql << EOF
+            -- Drop and recreate schema for clean state
+            DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
+            CREATE SCHEMA ${SCHEMA_NAME};
+
+            -- Grant necessary permissions
+            GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO anon, authenticated, service_role;
+            GRANT ALL ON SCHEMA ${SCHEMA_NAME} TO postgres;
+
+            -- Set search path for this schema
+            ALTER DATABASE postgres SET search_path TO ${SCHEMA_NAME}, public;
+          EOF
+
+          echo "✅ Schema created: ${SCHEMA_NAME}"
+
+      - name: Apply migrations to preview schema
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          echo "🔄 Applying migrations to ${SCHEMA_NAME}..."
+
+          # Apply each migration in order
+          for migration in supabase/migrations/*.sql; do
+            if [ -f "$migration" ]; then
+              echo "Applying: $(basename $migration)"
+              psql -v ON_ERROR_STOP=1 << EOF
+                SET search_path TO ${SCHEMA_NAME}, public;
+                \i $migration
+          EOF
+            fi
+          done
+
+          echo "✅ Migrations applied successfully"
+
+      - name: Seed preview database
+        if: hashFiles('supabase/seed.sql') != ''
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          echo "🌱 Seeding preview database..."
+          psql -v ON_ERROR_STOP=1 << EOF
+            SET search_path TO ${SCHEMA_NAME}, public;
+            \i supabase/seed.sql
+          EOF
+
+          echo "✅ Seed data applied"
+
+      - name: Generate preview credentials
+        id: creds
+        env:
+          SUPABASE_DEV_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          SUPABASE_DEV_ANON_KEY: ${{ secrets.SUPABASE_DEV_ANON_KEY }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          # Store credentials for comment
+          echo "url=${SUPABASE_DEV_URL}" >> $GITHUB_OUTPUT
+          echo "anon_key=${SUPABASE_DEV_ANON_KEY}" >> $GITHUB_OUTPUT
+          echo "schema=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const schema = '${{ steps.schema.outputs.name }}';
+            const url = '${{ steps.creds.outputs.url }}';
+            const anonKey = '${{ steps.creds.outputs.anon_key }}';
+
+            const body = `## 🎯 Preview Database Ready
+
+            Your PR preview database has been created with an isolated schema!
+
+            ### 📊 Database Details
+            - **Schema:** \`${schema}\`
+            - **Supabase URL:** \`${url}\`
+            - **Anon Key:** \`${anonKey.substring(0, 20)}...\` (full key in secrets)
+
+            ### 🚀 Test Your Changes
+
+            **Option 1: Connect from local dev**
+            \`\`\`bash
+            # Add to your .env.local for testing
+            EXPO_PUBLIC_SUPABASE_URL="${url}"
+            EXPO_PUBLIC_SUPABASE_ANON_KEY="${anonKey}"
+            EXPO_PUBLIC_SUPABASE_SCHEMA="${schema}"
+            \`\`\`
+
+            **Option 2: Direct SQL access**
+            \`\`\`bash
+            psql "postgresql://postgres:[PASSWORD]@${url.replace('https://', '').replace('.supabase.co', '')}.supabase.co:5432/postgres?options=-c%20search_path%3D${schema}"
+            \`\`\`
+
+            ### 📝 Applied Migrations
+            ${context.payload.pull_request.changed_files
+              ? 'Check the "Files changed" tab for migration details.'
+              : 'No new migrations in this PR.'}
+
+            ### 🔄 Auto-Update
+            This preview database will automatically update when you push new commits.
+
+            ### 🧹 Cleanup
+            The schema will be automatically deleted when this PR is closed or merged.
+
+            ---
+            💡 **Tip:** This is a shared dev instance with schema isolation. Data is not copied from production.
+            `;
+
+            // Find existing comment and update or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('🎯 Preview Database Ready')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Validate migrations
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          echo "🔍 Validating schema structure..."
+          psql << EOF
+            SET search_path TO ${SCHEMA_NAME}, public;
+
+            -- List all tables
+            SELECT schemaname, tablename
+            FROM pg_tables
+            WHERE schemaname = '${SCHEMA_NAME}'
+            ORDER BY tablename;
+
+            -- Check for common issues
+            SELECT 'RLS Enabled' as check,
+                   tablename,
+                   rowsecurity::text as enabled
+            FROM pg_tables
+            WHERE schemaname = '${SCHEMA_NAME}'
+            ORDER BY tablename;
+          EOF
+
+          echo "✅ Validation complete"

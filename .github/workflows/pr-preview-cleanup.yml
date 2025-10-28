@@ -1,0 +1,63 @@
+name: PR Preview Database Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Delete Preview Database Schema
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Generate schema name
+        id: schema
+        run: |
+          SCHEMA_NAME="pr_${{ github.event.pull_request.number }}"
+          echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
+          echo "🗑️  Schema to delete: ${SCHEMA_NAME}"
+
+      - name: Delete preview schema
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
+          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+        run: |
+          SCHEMA_NAME="${{ steps.schema.outputs.name }}"
+
+          echo "🔥 Deleting schema: ${SCHEMA_NAME}"
+          psql << EOF
+            DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
+          EOF
+
+          echo "✅ Preview database cleaned up"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const schema = '${{ steps.schema.outputs.name }}';
+
+            const body = `## 🧹 Preview Database Cleaned Up
+
+            The preview database schema \`${schema}\` has been deleted.
+
+            ${{ github.event.pull_request.merged && '✅ Changes merged to main!' || '❌ PR closed without merging.' }}
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
