@@ -28,10 +28,11 @@ jobs:
       - name: Delete preview schema
         env:
           PGHOST: ${{ secrets.SUPABASE_DEV_DB_HOST }}
-          PGPORT: ${{ secrets.SUPABASE_DEV_DB_PORT }}
+          PGPORT: 6543
           PGDATABASE: postgres
-          PGUSER: postgres
+          PGUSER: postgres.vuoucahoqaxpudtbdzjf
           PGPASSWORD: ${{ secrets.SUPABASE_DEV_DB_PASSWORD }}
+          PGSSLMODE: require
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
