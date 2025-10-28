@@ -38,48 +38,35 @@ jobs:
           echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
           echo "📦 Schema name: ${SCHEMA_NAME}"
 
-      - name: Link to dev project
-        run: supabase link --project-ref vuoucahoqaxpudtbdzjf
+      - name: Create schema and apply migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
-
-      - name: Create schema and apply migrations
+          PROJECT_REF: vuoucahoqaxpudtbdzjf
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
           echo "🔧 Creating preview database for schema: ${SCHEMA_NAME}"
 
-          # Create SQL file that sets up schema and runs migrations
-          cat > /tmp/setup_preview.sql << 'EOFSETUP'
-          -- Drop and recreate schema for clean state
-          DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;
-          CREATE SCHEMA ${SCHEMA_NAME};
+          # Function to execute SQL via Supabase Management API
+          execute_sql() {
+            local sql="$1"
+            curl -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+              -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"query\": $(echo "$sql" | jq -Rs .)}"
+          }
 
-          -- Grant necessary permissions
-          GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO anon, authenticated, service_role;
-          GRANT ALL ON SCHEMA ${SCHEMA_NAME} TO postgres;
-
-          -- Set search path
-          SET search_path TO ${SCHEMA_NAME}, public;
-          EOFSETUP
-
-          # Replace placeholder with actual schema name
-          sed -i "s/\${SCHEMA_NAME}/$SCHEMA_NAME/g" /tmp/setup_preview.sql
-
-          # Apply schema setup
+          # Create schema
           echo "📝 Creating schema..."
-          supabase db execute --file /tmp/setup_preview.sql --linked
+          execute_sql "DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE; CREATE SCHEMA ${SCHEMA_NAME}; GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO anon, authenticated, service_role; GRANT ALL ON SCHEMA ${SCHEMA_NAME} TO postgres;"
 
           # Apply each migration with schema context
           echo "🔄 Applying migrations..."
           for migration in supabase/migrations/*.sql; do
             if [ -f "$migration" ]; then
               echo "Applying: $(basename $migration)"
-              # Create temp file with SET search_path prepended
-              cat > /tmp/temp_migration.sql << EOFMIG
-          SET search_path TO $SCHEMA_NAME, public;
-          EOFMIG
-              cat "$migration" >> /tmp/temp_migration.sql
-              supabase db execute --file /tmp/temp_migration.sql --linked
+              # Read migration and prepend SET search_path
+              sql_content="SET search_path TO ${SCHEMA_NAME}, public; $(cat $migration)"
+              execute_sql "$sql_content"
             fi
           done
 
@@ -87,17 +74,25 @@ jobs:
 
       - name: Seed preview database
         if: hashFiles('supabase/seed.sql') != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
+          PROJECT_REF: vuoucahoqaxpudtbdzjf
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🌱 Seeding preview database..."
-          # Prepend schema context to seed file
-          cat > /tmp/seed_with_schema.sql << EOFSEED
-          SET search_path TO $SCHEMA_NAME, public;
-          EOFSEED
-          cat supabase/seed.sql >> /tmp/seed_with_schema.sql
 
-          supabase db execute --file /tmp/seed_with_schema.sql --linked
+          # Execute seed with schema context
+          execute_sql() {
+            local sql="$1"
+            curl -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+              -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"query\": $(echo "$sql" | jq -Rs .)}"
+          }
+
+          seed_sql="SET search_path TO ${SCHEMA_NAME}, public; $(cat supabase/seed.sql)"
+          execute_sql "$seed_sql"
 
           echo "✅ Seed data applied"
 
@@ -190,28 +185,19 @@ jobs:
             }
 
       - name: Validate migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
+          PROJECT_REF: vuoucahoqaxpudtbdzjf
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🔍 Validating schema structure..."
-          cat > /tmp/validate.sql << EOFVALIDATE
-          SET search_path TO $SCHEMA_NAME, public;
 
-          -- List all tables
-          SELECT schemaname, tablename
-          FROM pg_tables
-          WHERE schemaname = '$SCHEMA_NAME'
-          ORDER BY tablename;
+          validation_sql="SELECT schemaname, tablename FROM pg_tables WHERE schemaname = '${SCHEMA_NAME}' ORDER BY tablename;"
 
-          -- Check for common issues
-          SELECT 'RLS Enabled' as check,
-                 tablename,
-                 rowsecurity::text as enabled
-          FROM pg_tables
-          WHERE schemaname = '$SCHEMA_NAME'
-          ORDER BY tablename;
-          EOFVALIDATE
-
-          supabase db execute --file /tmp/validate.sql --linked
+          curl -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$validation_sql" | jq -Rs .)}"
 
           echo "✅ Validation complete"

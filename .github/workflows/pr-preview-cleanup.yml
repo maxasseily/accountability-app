@@ -13,11 +13,6 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       - name: Generate schema name
         id: schema
         run: |
@@ -25,21 +20,21 @@ jobs:
           echo "name=${SCHEMA_NAME}" >> $GITHUB_OUTPUT
           echo "🗑️  Schema to delete: ${SCHEMA_NAME}"
 
-      - name: Link to dev project
-        run: supabase link --project-ref vuoucahoqaxpudtbdzjf
+      - name: Delete preview schema
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_DEV_ACCESS_TOKEN }}
-
-      - name: Delete preview schema
+          PROJECT_REF: vuoucahoqaxpudtbdzjf
         run: |
           SCHEMA_NAME="${{ steps.schema.outputs.name }}"
 
           echo "🔥 Deleting schema: ${SCHEMA_NAME}"
-          cat > /tmp/cleanup.sql << EOFCLEANUP
-          DROP SCHEMA IF EXISTS $SCHEMA_NAME CASCADE;
-          EOFCLEANUP
 
-          supabase db execute --file /tmp/cleanup.sql --linked
+          cleanup_sql="DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;"
+
+          curl -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$cleanup_sql" | jq -Rs .)}"
 
           echo "✅ Preview database cleaned up"
 
