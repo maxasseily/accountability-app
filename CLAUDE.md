@@ -25,14 +25,52 @@ The project is configured to run in a devcontainer with:
 - `npm run ios` - Run on iOS simulator/device (requires macOS)
 - `npm run web` - Run in web browser
 
-### Supabase Local Development
+### Supabase Local Development (Primary Workflow)
+
+**Essential Commands:**
 - `npx supabase start` - Start local Supabase stack (Postgres, Auth, Storage, Studio)
 - `npx supabase stop` - Stop local Supabase
 - `npx supabase status` - Check running services and URLs
+- `npx supabase status -o env` - Output environment variables for `.env` file
+- `npx supabase db reset` - **SAFE**: Reset local DB and re-apply all migrations (use frequently!)
 - `npx supabase migration new <name>` - Create new migration file
-- `npx supabase db reset` - Reset local DB and apply all migrations
 - `npx supabase db diff -f <name>` - Generate migration from Studio UI changes
 - `npx supabase db pull` - Pull latest schema from remote (creates migration)
+- `npx supabase db push` - **DANGEROUS**: Push to production (NEVER run manually, use CI/CD!)
+
+**Command Safety Guide:**
+
+| Command | Safety | Description | When to Use |
+|---------|--------|-------------|-------------|
+| `npx supabase db reset` | ✅ Safe | Drops local DB, re-applies migrations | Before PRs, after pulling code, daily |
+| `npx supabase db push` | ❌ Dangerous | Pushes to production | NEVER manually - only via GitHub Actions |
+
+**Local Development Workflow:**
+```bash
+# 1. Start local Supabase
+npx supabase start
+
+# 2. Get credentials for .env
+npx supabase status -o env
+
+# 3. Configure .env with your computer's IP
+# EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321 (YOUR computer's IP)
+
+# 4. Make schema changes in Studio
+# Open http://127.0.0.1:54323 in browser on your computer
+
+# 5. Generate migration
+npx supabase db diff -f my_feature
+
+# 6. Test migration from clean state
+npx supabase db reset
+
+# 7. Test in Expo app
+npm start
+# Phone connects to http://192.168.1.42:54321 (your computer's IP)
+
+# 8. Create PR with migration files
+```
 
 ## Project Structure
 
@@ -142,11 +180,55 @@ The app uses **Supabase** for real backend authentication:
 
 ### Supabase Setup
 
+**Local-First Development:**
+The project uses local Supabase as the primary development environment. Developers connect to `http://127.0.0.1:54321` instead of production.
+
 **Environment Variables** (`.env`):
+```bash
+# For local development (default)
+# IMPORTANT: Use your computer's IP address (not 127.0.0.1)
+EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321  # Your computer's IP
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<get from 'npx supabase status -o env'>
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42  # Same IP as above
+
+# For preview branches (testing PR changes)
+EXPO_PUBLIC_SUPABASE_URL=https://xxx-preview-xxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<preview-anon-key>
+
+# For production (rarely used by developers)
+EXPO_PUBLIC_SUPABASE_URL=https://moqzugvlwzdotgnjmndd.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<production-anon-key>
 ```
-EXPO_PUBLIC_SUPABASE_URL=your-project-url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+**Getting Local Credentials:**
+```bash
+npx supabase start
+npx supabase status -o env
+# Copy SUPABASE_ANON_KEY
+# For SUPABASE_API_URL: Use your computer's IP (e.g., http://192.168.1.42:54321)
+# NOT http://127.0.0.1:54321 - your phone can't access that
+# Add EXPO_PUBLIC_ prefix in .env file
 ```
+
+**Port Forwarding (Automatic):**
+Devcontainer forwards these ports from container to host machine's network interface:
+- `8081` - Metro Bundler (Expo)
+- `54321` - Supabase API (accessible at computer's IP: `192.168.1.42:54321`)
+- `54322` - PostgreSQL (direct DB access)
+- `54323` - Supabase Studio UI (open in browser: `http://127.0.0.1:54323`)
+- `54324` - Mailpit (email testing)
+
+**How Port Forwarding Works:**
+- Supabase runs inside devcontainer at `127.0.0.1:54321`
+- Devcontainer forwards to host machine's `0.0.0.0:54321` (accessible from network)
+- Your phone accesses Supabase at your computer's IP: `http://192.168.1.42:54321`
+- Your browser can use `http://127.0.0.1:54323` for Studio UI (localhost on computer)
+
+**IP Address Usage:**
+- **Supabase URL (for phone)**: Use computer's network IP `http://192.168.1.42:54321` (NOT `127.0.0.1`)
+- **Metro Bundler (for phone)**: Use same computer IP in `REACT_NATIVE_PACKAGER_HOSTNAME` (e.g., `192.168.1.42`)
+- **Studio UI (for browser on computer)**: Can use `http://127.0.0.1:54323` (localhost works in browser)
+- **Key point**: Your phone cannot access `127.0.0.1` - that's localhost on the phone itself
 
 **Database Schema**:
 - `profiles` table stores user data (full_name, avatar_url)
@@ -160,31 +242,60 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - Password reset via email
 - Session persistence across app restarts
 
-**Development**: Email confirmation disabled in Supabase Auth settings
+**Development**: Email confirmation disabled in local Supabase
 **Production**: Enable email confirmation and configure SMTP
 
 ## Database Migration Workflow
 
-The project uses a **CI/CD pipeline with approval gates** for database changes:
+The project uses **local-first development with CI/CD pipeline and approval gates**:
 
-### Local Development
-1. Start local Supabase: `npx supabase start`
-2. Make schema changes in Studio UI (`http://127.0.0.1:54323`)
-3. Generate migration: `npx supabase db diff -f feature_name`
-4. Test locally: `npx supabase db reset`
+### Local Development (Primary Workflow)
+1. **Start local Supabase**: `npx supabase start`
+2. **Get credentials**: `npx supabase status -o env` → Add to `.env` with `EXPO_PUBLIC_` prefix
+3. **Make schema changes** in Studio UI (`http://127.0.0.1:54323`)
+4. **Generate migration**: `npx supabase db diff -f feature_name`
+5. **Test locally**: `npx supabase db reset` (resets DB and re-applies ALL migrations)
+6. **Verify in app**: `npm start` → Test features with local Supabase
 
-### Deployment Process
+### Understanding Key Commands
+
+#### `npx supabase db reset` (Safe - Use Daily!)
+- **What**: Drops local DB, re-applies all migrations from scratch
+- **Scope**: Local only (cannot affect production)
+- **When**: Before PRs, after pulling code, when testing migrations, when DB is in bad state
+- **Why**: Ensures migrations work from clean state, catches missing migrations
+
+#### `npx supabase db push` (Dangerous - Never Manual!)
+- **What**: Pushes migrations to remote (production) database
+- **Scope**: Affects all users immediately
+- **When**: ONLY via GitHub Actions with approval
+- **Why dangerous**: Bypasses review, no rollback, breaks production instantly
+
+### Deployment Process (GitHub Actions)
+
 1. **Create PR** with migration files in `supabase/migrations/`
-2. **Auto-validation** runs via GitHub Actions
-3. **Team reviews** PR with migration checklist
-4. **Merge to main** triggers deployment workflow
-5. **Manual approval required** from designated approver
-6. **Auto-deploys** to production after approval
+2. **GitHub Actions validates** migration syntax (`.github/workflows/deploy-db-dev.yml`)
+3. **Supabase creates preview branch** automatically for cloud testing
+4. **Team reviews** PR with migration checklist
+5. **Merge to main** triggers production deployment workflow
+6. **GitHub Actions pauses** and waits for manual approval (`.github/workflows/deploy-db-production.yml`)
+7. **Tech lead approves** in GitHub UI
+8. **`npx supabase db push` runs** automatically via GitHub Actions
+9. **Full audit trail** logged in GitHub Actions
+
+### Protection Layers
+1. **Local testing**: `npx supabase db reset` validates migrations
+2. **Code review**: PR approval required
+3. **Preview branch**: Test in cloud before production
+4. **GitHub Actions validation**: Syntax checking
+5. **Manual approval gate**: Tech lead approval required
+6. **Audit trail**: All deployments logged
 
 ### Key Points
-- **Never run `npx supabase db push` directly** - use CI/CD workflow
+- **Always use local Supabase** for development (`http://127.0.0.1:54321`)
+- **Run `npx supabase db reset` frequently** to test migrations
+- **NEVER run `npx supabase db push` manually** - use CI/CD workflow
 - All migrations are version controlled in `supabase/migrations/`
-- Migrations tested locally before PR
 - Production requires approval from tech lead/senior dev
 - Full audit trail via GitHub Actions
 

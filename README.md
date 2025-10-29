@@ -155,13 +155,48 @@ Click **"Reopen in Container"**.
 - You'll see a progress notification at the bottom-right
 - ☕ Grab a coffee while you wait!
 
-### Step 4: Add Your Supabase Credentials
+### Step 4: Start Local Supabase
 
-Once the container finishes building, you'll see the project files in VS Code.
+The project uses **local Supabase** for development - a complete backend running on your computer!
 
-**Create your environment file:**
+**Start the local database:**
 
 In the VS Code terminal (it opens at the bottom automatically), run:
+
+```bash
+npx supabase start
+```
+
+**What's happening:**
+- Docker is starting up a local Supabase stack (PostgreSQL, Auth, Storage, Studio)
+- First time takes 2-3 minutes (downloading Docker images)
+- Future starts are much faster (~30 seconds)
+- ☕ Grab a coffee while you wait!
+
+You'll see output like:
+```
+Started supabase local development setup.
+
+         API URL: http://127.0.0.1:54321
+          DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      Studio URL: http://127.0.0.1:54323
+```
+
+### Step 5: Configure Your Environment
+
+**Get your local credentials:**
+
+```bash
+npx supabase status -o env
+```
+
+This shows your local Supabase credentials:
+```
+SUPABASE_API_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Create your `.env` file:**
 
 ```bash
 cp .env.example .env
@@ -170,21 +205,41 @@ cp .env.example .env
 **Add your credentials:**
 
 1. Open the new `.env` file (you'll see it in the file explorer on the left)
-2. You'll see lines that look like this:
+2. Copy the anon key from `npx supabase status -o env` and add the `EXPO_PUBLIC_` prefix:
+   ```bash
+   # IMPORTANT: Use your computer's IP address for BOTH URLs (not 127.0.0.1!)
+   EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321  # Replace with YOUR computer's IP
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+   # Your computer's IP address (same as above)
+   REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42  # Replace with YOUR computer's IP
    ```
-   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-   REACT_NATIVE_PACKAGER_HOSTNAME=your-local-computer-IP-address
-   ```
-3. **Ask the project owner for the Supabase values** and replace those placeholders
-4. **Find your computer's IP address** and add it to `REACT_NATIVE_PACKAGER_HOSTNAME` (see below)
-5. Save the file (`Ctrl+S` or `Cmd+S`)
+3. **Find your computer's IP address** and use it for BOTH settings (see Step 6 below)
+4. Save the file (`Ctrl+S` or `Cmd+S`)
 
-> **Important:** Never share these credentials or commit the `.env` file to git. It's already set up to be ignored automatically.
+> **Critical:** The `.env` file is already set up to be ignored by git automatically.
 
-### Finding Your Computer's IP Address
+**Port Forwarding (Automatic):**
+The devcontainer automatically forwards these ports from the container to your computer's network interface:
+- `8081` - Metro Bundler (Expo dev server)
+- `54321` - Supabase API (accessible at your computer's IP)
+- `54323` - Supabase Studio (web UI - open in browser: `http://127.0.0.1:54323`)
 
-**Why do you need this?** Your phone needs to know where to find the development server running on your computer. Without this, Expo won't know how to connect.
+**Understanding IP Addresses:**
+- **Your phone needs your computer's IP for EVERYTHING**: Use the same IP (like `192.168.1.42`) for both Supabase URL and Metro hostname
+- **Why not `127.0.0.1`?**: That's localhost - on your phone, `127.0.0.1` means the phone itself, not your computer
+- **Port forwarding**: The devcontainer makes Supabase accessible at your computer's network IP (`0.0.0.0:54321`)
+- **Your browser**: Can still use `http://127.0.0.1:54323` to access Studio UI locally
+
+**In simple terms:**
+- `127.0.0.1` = "this device" (your phone or your computer)
+- `192.168.1.42` = "your computer on the network" (accessible from your phone)
+
+### Step 6: Find Your Computer's IP Address
+
+**Why do you need this?** Your phone needs to know where to find BOTH Metro Bundler AND Supabase running on your computer. You'll use the same IP address for both `EXPO_PUBLIC_SUPABASE_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME`.
+
+**Important:** Your phone cannot access `127.0.0.1` - that refers to the phone itself. Port forwarding makes Supabase accessible at your computer's network IP address (like `192.168.1.42:54321`).
 
 **On Mac:**
 1. Open Terminal (outside the dev container - use your Mac's terminal app)
@@ -217,16 +272,19 @@ Wireless LAN adapter Wi-Fi:
 In this example, your IP is `192.168.1.42`
 
 **Add it to your .env file:**
-```
+```bash
+# BOTH lines need your computer's IP address
+EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321
 REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42
 ```
 
 **Important notes:**
 - Your IP address might change if you restart your router or move to a different WiFi network
 - Make sure your phone is on the **same WiFi network** as your computer
-- If you can't connect later, check if your IP changed and update the `.env` file
+- If you can't connect later, check if your IP changed and update BOTH URLs in the `.env` file
+- **Use your computer's IP for BOTH settings** - not `127.0.0.1`
 
-### Step 5: Start the App
+### Step 7: Start the App
 
 In the VS Code terminal, run:
 
@@ -416,13 +474,19 @@ This usually means your phone can't find the development server on your computer
 2. **Check your IP address hasn't changed:**
    - On Mac: Run `ifconfig` and look for `inet` under `en0`
    - On Windows: Run `ipconfig` and look for `IPv4 Address`
-3. **Update your `.env` file** with the correct IP address in `REACT_NATIVE_PACKAGER_HOSTNAME`
+3. **Update your `.env` file** with the correct IP address in BOTH `EXPO_PUBLIC_SUPABASE_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME`
 4. **Restart the server:**
    ```bash
    # Stop the current server (Ctrl+C)
    npm start
    ```
 5. **Scan the QR code again** with your phone
+
+**Important:** If you see errors about Supabase connection, make sure:
+- `EXPO_PUBLIC_SUPABASE_URL` uses your computer's IP (e.g., `http://192.168.1.42:54321`) - NOT `127.0.0.1`
+- Supabase is running: `npx supabase status`
+- Port forwarding is working (should be automatic in devcontainer)
+- Your phone is on the same WiFi network as your computer
 
 ### "Container build failed" or Docker errors
 
@@ -562,6 +626,8 @@ npx expo start -c
 
 **Think of the database like a filing cabinet** - it stores all the app's information (user accounts, photos, settings, etc.).
 
+The project uses **local-first development** - you have your own complete copy of the database running on your computer!
+
 ### When You Need to Change the Database:
 
 Let's say you want to add a new feature, like "user preferences". You'd need to add a new drawer to the filing cabinet. Here's how it works:
@@ -577,28 +643,82 @@ npx supabase start
 
 Think of this as making a draft on paper - you can experiment safely without affecting anyone else!
 
-**2. Save Your Changes**
+**Understanding the key commands:**
+
+```bash
+# npx supabase db reset - Safe! Local only!
+# What it does: Wipes your local database clean and re-applies all migrations
+# When to use: Before creating a PR, after pulling new code, when DB is in bad state
+# Cannot hurt production: Only affects your computer
+npx supabase db reset
+
+# npx supabase db push - Dangerous! Affects production!
+# What it does: Pushes changes directly to production database
+# When to use: NEVER manually! Only via GitHub Actions with approval
+# Why dangerous: Bypasses review, could break production immediately
+
+# Note: Remember your .env should use your computer's IP:
+# EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321 (not 127.0.0.1)
+```
+
+**2. Save Your Changes (Create Migration)**
 
 When you're happy with your changes, the system creates a "migration file" - it's like writing down instructions for how to update the filing cabinet.
 
-**3. Ask Your Team to Review**
+```bash
+# Generate migration from your Studio UI changes
+npx supabase db diff -f my_new_feature
+
+# Test that migration works from clean state
+npx supabase db reset
+```
+
+**3. Ask Your Team to Review (Create Pull Request)**
 
 Create a Pull Request (PR) on GitHub. This is like asking your coworkers: "Hey, I want to add this new drawer to our filing cabinet. Does this look good?"
 
-**4. Someone Approves It**
+**What happens automatically:**
+- ✅ GitHub Actions validates your migration files
+- ✅ Supabase creates a preview database for testing
+- ✅ Team can review and test your changes
 
-A senior team member reviews your changes and clicks "Approve" in GitHub. They're making sure your new drawer won't mess up the filing system!
+**4. Someone Approves It (Code Review)**
 
-**5. It Automatically Updates the Real Database**
+A senior team member reviews your changes and approves the PR. They're making sure your new drawer won't mess up the filing system!
 
-Once approved, the system **automatically** updates the production database (the one the app actually uses). Everyone's app now has access to the new feature!
+**5. Merge to Main (Triggers Deployment)**
 
-### Why This Is Safe:
+After approval, you merge to the `main` branch. This triggers the production deployment workflow.
 
-- ✅ **You can't accidentally break things** - changes must be approved first
+**6. Manual Approval Required (Protection Gate)**
+
+GitHub Actions **pauses** and waits for a tech lead to approve the production deployment. This is the final safety check!
+
+**7. Automatic Deployment (Safe Push)**
+
+Once approved, GitHub Actions runs `npx supabase db push` automatically:
+- ✅ Full audit trail in GitHub Actions logs
+- ✅ Team visibility via notifications
+- ✅ Proper authentication and error handling
+- ✅ Everyone's app now has access to the new feature!
+
+### Why This Workflow Is Safe:
+
+- ✅ **You can't accidentally break things** - multiple approval gates before production
+- ✅ **Test locally first** - `npx supabase db reset` ensures migrations work
+- ✅ **Preview branches** - Test in cloud environment before production
+- ✅ **Manual approval required** - Tech lead must approve production deployment
+- ✅ **Full audit trail** - Every deployment logged in GitHub Actions
 - ✅ **Everything is backed up** - we can always undo if something goes wrong
-- ✅ **You test locally first** - no experimenting on the real database
 - ✅ **History is saved** - we can see who changed what and when
+
+### Protection Layers:
+
+1. **Local Testing**: `npx supabase db reset` validates migrations work
+2. **Code Review**: Team reviews PR before merge
+3. **Preview Branch**: Test in cloud before production
+4. **Approval Gate**: Manual approval required for production
+5. **GitHub Actions**: Automated deployment with full logging
 
 ### Key Commands for Developers:
 
@@ -606,17 +726,46 @@ Once approved, the system **automatically** updates the production database (the
 # Start your local database (safe sandbox)
 npx supabase start
 
-# See what's running
+# See what's running and get URLs
 npx supabase status
+
+# Get environment variables for .env file
+npx supabase status -o env
 
 # Stop the local database
 npx supabase stop
 
-# Create a new change
+# Create a new migration file
 npx supabase migration new describe_your_change
 
-# Test your changes locally
+# Test your changes locally (USE THIS OFTEN!)
+# Resets DB and re-applies all migrations - verifies migrations work
 npx supabase db reset
+
+# Generate migration from Studio UI changes
+npx supabase db diff -f feature_name
+
+# ⚠️ NEVER run this command manually (use GitHub Actions instead)
+npx supabase db push
+```
+
+**Quick workflow:**
+```bash
+# 1. Start local Supabase
+npx supabase start
+
+# 2. Make changes in Studio UI (http://127.0.0.1:54323)
+
+# 3. Generate migration
+npx supabase db diff -f my_feature
+
+# 4. Test migration works from clean state
+npx supabase db reset
+
+# 5. If successful, create PR!
+git add supabase/migrations/
+git commit -m "feat: add my feature"
+git push
 ```
 
 ### ⚠️ Important: Storage Buckets for Photo Uploads

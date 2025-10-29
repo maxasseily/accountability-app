@@ -31,27 +31,73 @@ Local Dev → PR with Preview Branch → PR Review → Merge to Main → Manual 
 
 ## 👥 Team Workflow
 
-### 1. **Local Development**
+### 1. **Local Development** (Primary Workflow)
+
+The project uses **local-first development** - all development happens against a local Supabase instance running in Docker.
+
+#### Initial Setup
 
 ```bash
-# Start local Supabase
+# Start local Supabase (first time or after container restart)
 npx supabase start
 
-# Create a new migration
+# Get local credentials for your .env file
+npx supabase status -o env
+```
+
+**Configure your `.env` for local development:**
+```bash
+# Get anon key from `npx supabase status -o env`
+# IMPORTANT: Use your computer's IP address for both URLs (not 127.0.0.1)
+EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321  # Your computer's IP
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42  # Same IP as above
+```
+
+**Understanding the URLs:**
+- **`EXPO_PUBLIC_SUPABASE_URL`**: Use your computer's IP (e.g., `http://192.168.1.42:54321`)
+  - Your phone cannot access `127.0.0.1` - that's localhost on the phone
+  - Port forwarding makes Supabase accessible at your computer's IP
+- **`REACT_NATIVE_PACKAGER_HOSTNAME`**: Use the same computer IP so your phone can connect to Metro
+- **Use the same IP address for both settings**
+
+#### Development Workflow
+
+```bash
+# 1. Start local Supabase
+npx supabase start
+
+# 2. Create a new migration
 npx supabase migration new add_your_feature
 
-# Edit the migration file in supabase/migrations/
+# 3. Edit the migration file in supabase/migrations/
 # OR use Studio UI at http://127.0.0.1:54323
 
-# Generate diff of changes made in Studio
+# 4. Generate diff of changes made in Studio
 npx supabase db diff -f add_your_feature
 
-# Test locally (applies all migrations from scratch)
+# 5. Test locally (applies all migrations from scratch)
 npx supabase db reset
 
-# Verify in local Studio
+# 6. Verify in local Studio (open in browser on your computer)
 open http://127.0.0.1:54323
+
+# 7. Test in your Expo app on phone
+npm start  # App on phone connects to http://192.168.1.42:54321 (your computer's IP)
 ```
+
+**Key Commands:**
+
+| Command | What It Does | When to Use |
+|---------|-------------|-------------|
+| `npx supabase start` | Starts local Supabase stack | Start of dev session |
+| `npx supabase status` | Shows running services & URLs | Check if Supabase is running |
+| `npx supabase status -o env` | Outputs env variables | Get local credentials |
+| `npx supabase db reset` | Resets DB, applies all migrations | Test migrations, fix bad state |
+| `npx supabase db diff -f name` | Creates migration from Studio changes | After making UI changes |
+| `npx supabase stop` | Stops local Supabase | End of dev session |
+
+**⚠️ NEVER run `npx supabase db push` manually** - it pushes directly to production!
 
 **⚠️ Storage Buckets Required for Testing:**
 
@@ -81,12 +127,26 @@ git push origin feature/add-comments
 ```
 
 **What happens automatically:**
-- ✅ GitHub Actions validates migration syntax
+- ✅ **GitHub Actions validates migration syntax** (`.github/workflows/deploy-db-dev.yml`)
+  - Checks migration files are valid SQL
+  - Ensures no syntax errors
+  - Verifies migrations can be parsed
 - ✅ Bot comments on PR with review checklist
 - ✅ Shows migration diff for review
-- 🌿 **Supabase creates a preview branch** automatically
+- 🌿 **Supabase creates a preview branch** automatically (via GitHub integration)
 - 🔗 Preview database URL posted in PR comments
 - 📊 Migrations auto-applied to preview branch
+
+**GitHub Actions Validation Workflow:**
+```yaml
+# Runs on: Pull request creation/update
+# Purpose: Validate migration files before review
+# Actions:
+1. Checks out code
+2. Sets up Supabase CLI
+3. Validates migration syntax
+4. Reports errors in PR if validation fails
+```
 
 **Preview Branch Benefits:**
 - Test your changes in a real cloud environment
@@ -128,8 +188,21 @@ git push origin main
 
 **What happens automatically:**
 - 🌿 Preview branch is **automatically deleted** by Supabase
-- 🚀 GitHub Actions workflow triggered for production
-- ⏸️ **Waits for manual approval** (see step 5)
+- 🚀 **GitHub Actions production deployment workflow triggered** (`.github/workflows/deploy-db-production.yml`)
+- ⏸️ **Workflow pauses and waits for manual approval** (see step 5)
+
+**GitHub Actions Production Workflow:**
+```yaml
+# Runs on: Push to main branch (after PR merge)
+# Triggers when: supabase/migrations/ directory has changes
+# Steps:
+1. Checks out code
+2. Sets up Supabase CLI with production credentials
+3. PAUSES for manual approval (requires 'production' environment approval)
+4. After approval: Runs `npx supabase db push`
+5. Reports success/failure
+6. Sends notifications (if configured)
+```
 
 ### 5. **Production Deployment (Requires Approval)**
 
@@ -143,9 +216,17 @@ git push origin main
 5. Click **"Approve and deploy"**
 
 **What happens after approval:**
-- 📤 `npx supabase db push` runs automatically
+- 📤 **`npx supabase db push` runs automatically via GitHub Actions**
+  - Authenticates with production using `SUPABASE_ACCESS_TOKEN` secret
+  - Applies pending migrations to production database
+  - Each migration runs in order (by timestamp)
+  - If any migration fails, the workflow fails and production is unchanged
 - ✅ Migrations applied to production database
 - 🔗 Changes live at `https://moqzugvlwzdotgnjmndd.supabase.co`
+- 📝 Full audit trail in GitHub Actions logs
+- 👥 Team notified of deployment
+
+**This is the ONLY safe way to run `npx supabase db push` - never run it manually!**
 
 ## 🛠️ Setup Required (One-time)
 
@@ -253,13 +334,16 @@ Access Supabase Studio for preview branch:
 # Start Supabase
 npx supabase start
 
+# Check status and get URLs
+npx supabase status
+
+# Get environment variables for .env file
+npx supabase status -o env
+
 # Stop Supabase
 npx supabase stop
 
-# Check status
-npx supabase status
-
-# Reset database (re-applies all migrations)
+# Reset database (re-applies all migrations) - USE OFTEN!
 npx supabase db reset
 
 # Create new migration
@@ -274,22 +358,102 @@ open http://127.0.0.1:54323
 
 ### Sync with Remote
 ```bash
-# Pull latest schema from production
+# Pull latest schema from production (creates migration file)
 npx supabase db pull
+```
 
-# Push local migrations to production (⚠️ USE CI/CD INSTEAD)
+### ⚠️ Command to NEVER Run Manually
+```bash
+# Push local migrations to production (⚠️ ONLY VIA GITHUB ACTIONS!)
 npx supabase db push
+
+# Why you should NEVER run this:
+# - Bypasses code review
+# - No approval gate
+# - Could break production
+# - No audit trail
+# - Team has no visibility
+
+# The right way:
+# 1. Create PR with migrations
+# 2. Get approval
+# 3. Merge to main
+# 4. GitHub Actions runs it with approval gate
 ```
 
 ## ⚠️ Important Notes
 
-### DO NOT Run Directly on Production:
-```bash
-# ❌ DON'T DO THIS - Use GitHub Actions instead
-npx supabase db push
+### Understanding the Two Key Commands
+
+#### `npx supabase db reset` (Safe - Local Only)
+**What it does:**
+- Drops your LOCAL database completely
+- Re-applies ALL migrations from scratch
+- Re-runs seed data
+- Only affects your computer
+
+**When to use:**
+- ✅ Before every PR (verify migrations work)
+- ✅ After pulling new code from main
+- ✅ When switching branches
+- ✅ When local DB is in a bad state
+- ✅ Multiple times per day during development
+
+**Cannot hurt production** - only affects local development environment
+
+#### `npx supabase db push` (Dangerous - Production)
+**What it does:**
+- Pushes migrations to REMOTE (production) database
+- Affects all users immediately
+- Bypasses review process if run manually
+- Hard to rollback
+
+**When GitHub Actions runs it (SAFE):**
+- ✅ After PR merged to main
+- ✅ After manual approval from tech lead
+- ✅ With full audit trail
+- ✅ With team visibility
+
+**When you run it manually (DANGEROUS):**
+- ❌ Bypasses code review
+- ❌ No approval gate
+- ❌ Could break production
+- ❌ No audit trail
+- ❌ Team has no visibility
+
+**Rule:** NEVER run `npx supabase db push` manually. Always use GitHub Actions.
+
+### How GitHub Actions Protects Production
+
+**The workflow file:** `.github/workflows/deploy-db-production.yml`
+
+```yaml
+# 1. Triggers only on push to main
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+
+# 2. Requires manual approval
+environment:
+  name: production
+  # Configured in GitHub Settings > Environments
+  # Requires approval from designated reviewers
+
+# 3. Runs db push with proper auth
+- run: npx supabase db push
+  env:
+    SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+# 4. Full audit trail in GitHub Actions logs
 ```
 
-**Why?** No audit trail, no review, no rollback capability.
+**Protection layers:**
+1. **Code review**: PR must be approved before merge
+2. **Branch protection**: Main branch requires passing checks
+3. **Environment approval**: Production environment requires manual approval
+4. **Audit trail**: Every deployment logged in GitHub Actions
+5. **Notifications**: Team sees when deployments happen
 
 ### Destructive Operations:
 ```sql
