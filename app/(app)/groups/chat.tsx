@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, router } from 'expo-router';
 import GradientBackground from '../../../src/components/ui/GradientBackground';
-import { MessageList } from '../../../src/components/chat/MessageList';
+import { MessageList, MessageListRef } from '../../../src/components/chat/MessageList';
 import { MessageInput } from '../../../src/components/chat/MessageInput';
 import { colors } from '../../../src/utils/colors';
 import { useAuth } from '../../../src/context/AuthContext';
@@ -30,6 +29,7 @@ export default function ChatScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const messageListRef = useRef<MessageListRef>(null);
 
   // Redirect if not in a group
   useEffect(() => {
@@ -38,6 +38,23 @@ export default function ChatScreen() {
       router.back();
     }
   }, [isInGroup]);
+
+  // Scroll to bottom when keyboard appears
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        // Small delay to ensure keyboard is fully shown
+        setTimeout(() => {
+          messageListRef.current?.scrollToEnd();
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   // Load initial messages
   const loadMessages = useCallback(async () => {
@@ -119,6 +136,7 @@ export default function ChatScreen() {
         options={{
           headerShown: true,
           headerTransparent: true,
+          headerBackTitle: 'Group',
           headerTitle: () => (
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>{group.name}</Text>
@@ -128,14 +146,11 @@ export default function ChatScreen() {
             </View>
           ),
           headerTintColor: colors.textPrimary,
+          headerStatusBarHeight: 35,
         }}
       />
 
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={styles.container}>
         <View style={styles.messagesContainer}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
@@ -143,6 +158,7 @@ export default function ChatScreen() {
             </View>
           ) : (
             <MessageList
+              ref={messageListRef}
               messages={messages}
               currentUserId={user.id}
               onRefresh={handleRefresh}
@@ -152,7 +168,7 @@ export default function ChatScreen() {
         </View>
 
         <MessageInput onSend={handleSendMessage} disabled={isSending} />
-      </KeyboardAvoidingView>
+      </View>
     </GradientBackground>
   );
 }
@@ -160,7 +176,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 100,
+    paddingTop: 90,
   },
   messagesContainer: {
     flex: 1,

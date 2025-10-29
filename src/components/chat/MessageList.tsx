@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   FlatList,
   View,
@@ -20,15 +20,32 @@ interface MessageListProps {
   onEndReached?: () => void;
 }
 
-export function MessageList({
-  messages,
-  currentUserId,
-  isLoading = false,
-  onRefresh,
-  isRefreshing = false,
-  onEndReached,
-}: MessageListProps) {
-  const flatListRef = useRef<FlatList>(null);
+export interface MessageListRef {
+  scrollToEnd: () => void;
+}
+
+export const MessageList = forwardRef<MessageListRef, MessageListProps>(
+  (
+    {
+      messages,
+      currentUserId,
+      isLoading = false,
+      onRefresh,
+      isRefreshing = false,
+      onEndReached,
+    },
+    ref
+  ) => {
+    const flatListRef = useRef<FlatList>(null);
+
+    // Expose scrollToEnd method to parent
+    useImperativeHandle(ref, () => ({
+      scrollToEnd: () => {
+        if (flatListRef.current && messages.length > 0) {
+          flatListRef.current.scrollToEnd({ animated: true });
+        }
+      },
+    }));
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -94,7 +111,7 @@ export function MessageList({
       }}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   contentContainer: {
