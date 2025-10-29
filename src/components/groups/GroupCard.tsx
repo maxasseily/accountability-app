@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { colors } from '../../utils/colors';
 import type { GroupWithMembers } from '../../types/groups';
 
@@ -19,6 +21,10 @@ export default function GroupCard({ group, onLeaveGroup }: GroupCardProps) {
     } catch (error) {
       console.error('Error sharing:', error);
     }
+  };
+
+  const handleOpenChat = () => {
+    router.push('/(app)/groups/chat');
   };
 
   return (
@@ -46,29 +52,47 @@ export default function GroupCard({ group, onLeaveGroup }: GroupCardProps) {
 
           <View style={styles.actions}>
             <TouchableOpacity
-              style={styles.shareButton}
-              onPress={handleShare}
+              style={styles.chatButton}
+              onPress={handleOpenChat}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={[colors.secondaryStart, colors.secondaryEnd]}
+                colors={[colors.primaryStart, colors.primaryEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.shareGradient}
+                style={styles.chatGradient}
               >
-                <Text style={styles.shareButtonText}>Share Code</Text>
+                <Ionicons name="chatbubbles" size={20} color={colors.textPrimary} />
+                <Text style={styles.chatButtonText}>Group Chat</Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            {onLeaveGroup && (
+            <View style={styles.secondaryActions}>
               <TouchableOpacity
-                style={styles.leaveButton}
-                onPress={onLeaveGroup}
+                style={styles.shareButton}
+                onPress={handleShare}
                 activeOpacity={0.7}
               >
-                <Text style={styles.leaveButtonText}>Leave Group</Text>
+                <LinearGradient
+                  colors={[colors.secondaryStart, colors.secondaryEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.shareGradient}
+                >
+                  <Text style={styles.shareButtonText}>Share Code</Text>
+                </LinearGradient>
               </TouchableOpacity>
-            )}
+
+              {onLeaveGroup && (
+                <TouchableOpacity
+                  style={styles.leaveButton}
+                  onPress={onLeaveGroup}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.leaveButtonText}>Leave Group</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </LinearGradient>
       </BlurView>
@@ -143,6 +167,27 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   actions: {
+    gap: 12,
+  },
+  chatButton: {
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  chatGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chatButtonText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryActions: {
     flexDirection: 'row',
     gap: 12,
   },
