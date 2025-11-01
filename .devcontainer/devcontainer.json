@@ -13,7 +13,8 @@
         "streetsidesoftware.code-spell-checker",
         "Anthropic.claude-code",
         "Graphite.gti-vscode",
-        "Anthropic.claude-code"
+        "Anthropic.claude-code",
+        "openai.chatgpt"
       ],
       "settings": {
         "editor.formatOnSave": true
@@ -39,6 +40,7 @@
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "CODEX_CONFIG_DIR": "/home/node/.codex",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
   "mounts": [
@@ -47,6 +49,7 @@
     "source=graphite-config,target=/root/.config/graphite,type=volume",
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=codex-config-${devcontainerId},target=/home/node/.codex,type=volume",
     "source=supabase-config-${devcontainerId},target=/root/.supabase,type=volume"
   ]
 }

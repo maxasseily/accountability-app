@@ -367,6 +367,7 @@ Before deploying:
 - **[SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)** - Team workflow and CI/CD pipeline
 - **[README.md](./README.md)** - Simple explanation for non-technical users
 - **[CLAUDE.md](./CLAUDE.md)** - Complete technical architecture
+- **[CODEX.md](./CODEX.md)** - Codex CLI context and quick reference
 
 ## 🆘 Common Issues
 
