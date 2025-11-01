@@ -11,11 +11,14 @@ import { spacing } from '../../../src/utils/spacing';
 import { useGroup } from '../../../src/context/GroupContext';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useState } from 'react';
 
 export default function GroupsScreen() {
-  const { group, isLoading, leaveGroup } = useGroup();
+  const { group, isLoading, leaveGroup, refreshGroup } = useGroup();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const handleLeaveGroup = () => {
     Alert.alert(
@@ -38,7 +41,19 @@ export default function GroupsScreen() {
     );
   };
 
-  if (isLoading) {
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshGroup();
+      setRefreshToken((prev) => prev + 1);
+    } catch (error) {
+      console.error('Error refreshing group:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshGroup]);
+
+  if (isLoading && !isRefreshing) {
     return (
       <GradientBackground>
         <StatusBar style="light" hidden={true} />
@@ -65,7 +80,13 @@ export default function GroupsScreen() {
               groupName={group.name}
               memberCount={group.member_count}
             />
-            <MemberList members={group.members} currentUserId={user.id} />
+            <MemberList
+              members={group.members}
+              currentUserId={user.id}
+              refreshToken={refreshToken}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
             <GroupChatButton />
             <GroupAccessInfo
               groupName={group.name}

@@ -1,8 +1,6 @@
 import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useState } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import type { GroupMemberWithProfile } from '../../types/groups';
@@ -13,15 +11,19 @@ import type { UserGoal } from '../../types/goals';
 interface MemberListProps {
   members: GroupMemberWithProfile[];
   currentUserId: string;
+  refreshToken: number;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 interface MemberItemProps {
   member: GroupMemberWithProfile;
   isCurrentUser: boolean;
   onPhotoPress: (photo: DailyPhoto, memberName: string) => void;
+  refreshToken: number;
 }
 
-function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
+function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: MemberItemProps) {
   const { profile } = member;
   const displayName = profile.full_name || profile.email.split('@')[0] || 'User';
   const [latestPhoto, setLatestPhoto] = useState<DailyPhoto | null>(null);
@@ -56,13 +58,11 @@ function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
     }
   }, [member.user_id, getUserGoal]);
 
-  // Refresh photo and goal when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadPhoto();
-      loadGoal();
-    }, [loadPhoto, loadGoal])
-  );
+  // Load photo and goal on mount or when refresh is triggered
+  useEffect(() => {
+    loadPhoto();
+    loadGoal();
+  }, [loadPhoto, loadGoal, refreshToken]);
 
   return (
     <View style={styles.memberItem}>
@@ -121,7 +121,7 @@ function MemberItem({ member, isCurrentUser, onPhotoPress }: MemberItemProps) {
   );
 }
 
-export default function MemberList({ members, currentUserId }: MemberListProps) {
+export default function MemberList({ members, currentUserId, refreshToken, onRefresh, isRefreshing }: MemberListProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: DailyPhoto; name: string } | null>(null);
 
   const handlePhotoPress = (photo: DailyPhoto, memberName: string) => {
@@ -134,7 +134,18 @@ export default function MemberList({ members, currentUserId }: MemberListProps) 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Group Members</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Group Members</Text>
+        <TouchableOpacity
+          style={[styles.refreshButton, isRefreshing && styles.refreshButtonDisabled]}
+          onPress={onRefresh}
+          disabled={isRefreshing}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh group members"
+        >
+          <Ionicons name="refresh" size={18} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
       <BlurView intensity={20} tint="dark" style={styles.card}>
         <View style={styles.gradient}>
           <FlatList
@@ -145,6 +156,7 @@ export default function MemberList({ members, currentUserId }: MemberListProps) 
                 member={item}
                 isCurrentUser={item.user_id === currentUserId}
                 onPhotoPress={handlePhotoPress}
+                refreshToken={refreshToken}
               />
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -191,13 +203,31 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+  },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.6,
   },
   card: {
     borderRadius: 20,
