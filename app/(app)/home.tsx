@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGoal } from '../../src/context/GoalContext';
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [todayPhoto, setTodayPhoto] = useState<DailyPhoto | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
+  const insets = useSafeAreaInsets();
 
   // Load today's photo on mount
   useEffect(() => {
@@ -194,15 +196,20 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: spacing.screenPaddingTopCompact + insets.top },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Welcome Section with Logout Button */}
           <View style={styles.welcomeSection}>
             <View style={styles.welcomeRow}>
               <View style={styles.welcomeTextContainer}>
-                <Text style={styles.welcomeText}>Welcome back,</Text>
-                <Text style={styles.nameText}>{user?.name}!</Text>
+                <Text style={styles.greetingLabel}>Welcome back,</Text>
+                <Text style={styles.greetingName}>
+                  {user?.name ? `${user.name}!` : 'friend!'}
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.logoutButton}
@@ -420,7 +427,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: spacing.screenPaddingTop,
+    paddingTop: spacing.screenPaddingTopCompact,
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingBottom: spacing.screenPaddingBottom,
   },
@@ -446,14 +453,14 @@ const styles = StyleSheet.create({
   welcomeTextContainer: {
     flex: 1,
   },
-  welcomeText: {
-    fontSize: 20,
+  greetingLabel: {
+    fontSize: 18,
     color: colors.textSecondary,
     marginBottom: 4,
   },
-  nameText: {
-    fontSize: 36,
-    fontWeight: 'bold',
+  greetingName: {
+    fontSize: 32,
+    fontWeight: '700',
     color: colors.textPrimary,
     textShadowColor: colors.accentGlow,
     textShadowOffset: { width: 0, height: 0 },

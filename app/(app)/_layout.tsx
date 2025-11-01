@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { colors } from '../../src/utils/colors';
 
 export default function AppLayout() {
@@ -11,10 +12,9 @@ export default function AppLayout() {
         // Hide tab bar on nested screens within groups tab
         // When navigating to groups/chat, groups/create, or groups/join,
         // the navigation state will show the nested route name
-        const state = route.state;
+        const focusedRouteName = getFocusedRouteNameFromRoute(route) ?? 'index';
         const shouldHideTabBar =
-          route.name === 'groups' &&
-          state?.routes?.[state.index]?.name !== 'index';
+          route.name === 'groups' && focusedRouteName !== 'index';
 
         return {
           headerShown: false,

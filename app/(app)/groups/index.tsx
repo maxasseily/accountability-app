@@ -10,10 +10,12 @@ import { colors } from '../../../src/utils/colors';
 import { spacing } from '../../../src/utils/spacing';
 import { useGroup } from '../../../src/context/GroupContext';
 import { useAuth } from '../../../src/context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function GroupsScreen() {
   const { group, isLoading, leaveGroup } = useGroup();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleLeaveGroup = () => {
     Alert.alert(
@@ -50,7 +52,13 @@ export default function GroupsScreen() {
   return (
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: spacing.screenPaddingTopCompact + insets.top },
+        ]}
+      >
         {group && user ? (
           <>
             <GroupHeader
@@ -78,7 +86,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingTop: spacing.screenPaddingTop,
+    paddingTop: spacing.screenPaddingTopCompact,
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingBottom: spacing.screenPaddingBottom,
   },
