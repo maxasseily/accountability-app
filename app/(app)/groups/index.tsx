@@ -1,10 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import GradientBackground from '../../../src/components/ui/GradientBackground';
-import GroupCard from '../../../src/components/groups/GroupCard';
+import GroupHeader from '../../../src/components/groups/GroupHeader';
 import MemberList from '../../../src/components/groups/MemberList';
+import GroupChatButton from '../../../src/components/groups/GroupChatButton';
+import GroupAccessInfo from '../../../src/components/groups/GroupAccessInfo';
 import NoGroupState from '../../../src/components/groups/NoGroupState';
 import { colors } from '../../../src/utils/colors';
+import { spacing } from '../../../src/utils/spacing';
 import { useGroup } from '../../../src/context/GroupContext';
 import { useAuth } from '../../../src/context/AuthContext';
 
@@ -48,12 +51,19 @@ export default function GroupsScreen() {
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.title}>Groups</Text>
-
         {group && user ? (
           <>
-            <GroupCard group={group} onLeaveGroup={handleLeaveGroup} />
+            <GroupHeader
+              groupName={group.name}
+              memberCount={group.member_count}
+            />
             <MemberList members={group.members} currentUserId={user.id} />
+            <GroupChatButton />
+            <GroupAccessInfo
+              groupName={group.name}
+              accessCode={group.access_code}
+              onLeaveGroup={handleLeaveGroup}
+            />
           </>
         ) : (
           <NoGroupState />
@@ -68,23 +78,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingTop: 80,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingTop: spacing.screenPaddingTop,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingBottom: spacing.screenPaddingBottom,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 40,
-    textAlign: 'center',
-    textShadowColor: colors.accentGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
   },
 });
