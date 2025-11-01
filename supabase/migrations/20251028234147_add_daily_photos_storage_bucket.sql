@@ -6,4 +6,5 @@ values (
   true,  -- public bucket for easy access
   5242880,  -- 5MB file size limit
   array['image/jpeg', 'image/jpg', 'image/png', 'image/webp']  -- only allow image files
-);
+)
+on conflict (id) do nothing;
