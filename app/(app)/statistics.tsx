@@ -7,6 +7,7 @@ import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Generate fake credibility data for the last 30 days
 const generateFakeData = () => {
@@ -105,6 +106,7 @@ const SimpleLineChart = ({ data }: { data: any[] }) => {
 export default function StatisticsScreen() {
   const { goal, hasGoal, getProgress } = useGoal();
   const progress = getProgress();
+  const insets = useSafeAreaInsets();
 
   return (
     <GradientBackground>
@@ -112,7 +114,10 @@ export default function StatisticsScreen() {
       <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: spacing.screenPaddingTopCompact + insets.top },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Chart Section */}
@@ -214,7 +219,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: spacing.screenPaddingTop,
+    paddingTop: spacing.screenPaddingTopCompact,
     paddingBottom: spacing.screenPaddingBottom,
   },
   chartSection: {
@@ -222,7 +227,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 8,
     textShadowColor: colors.accentGlow,

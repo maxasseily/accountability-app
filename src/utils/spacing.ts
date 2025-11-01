@@ -12,6 +12,8 @@ export const spacing = {
   // Screen-level padding values
   // For main tab screens (home, groups, statistics)
   screenPaddingTop: 48,
+  // Reduced top padding when safe-area offsets are applied
+  screenPaddingTopCompact: 12,
   screenPaddingHorizontal: 24,
   screenPaddingBottom: 120, // Accommodates floating tab bar (75px + margin + extra space)
 
