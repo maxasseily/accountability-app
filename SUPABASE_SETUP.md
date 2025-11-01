@@ -1,14 +1,22 @@
 # Supabase Local Development Setup
 
-This guide covers how to set up and use Supabase for local development with Docker-in-Docker.
+This guide covers how to set up and use Supabase for local development with Docker-in-Docker and Expo.
 
 ## 🏗️ Architecture Overview
 
-The project uses **Supabase CLI** for local development:
-- **Local Database**: Runs in Docker containers via `npx supabase start`
-- **Remote Database**: Production database on Supabase Cloud
+The project uses **local-first development** with Supabase CLI:
+- **Local Database**: Primary development environment, runs in Docker containers via `npx supabase start`
+- **Remote Database**: Production database on Supabase Cloud (deployed via CI/CD)
 - **Migrations**: Version-controlled schema changes in `supabase/migrations/`
 - **CI/CD**: Automated deployments via GitHub Actions with approval gates
+- **Expo Integration**: Seamless connection between React Native app and local Supabase
+
+### Why Local-First?
+- ✅ **Fast iteration**: No network latency, instant feedback
+- ✅ **Offline development**: Work without internet connection
+- ✅ **Safe experimentation**: Changes don't affect production
+- ✅ **Cost-effective**: No API usage charges during development
+- ✅ **Consistent environment**: Same setup across all developers
 
 ## ✅ Initial Setup (One-Time)
 
@@ -63,9 +71,54 @@ create trigger on_auth_user_created
 ```
 
 ### 2. Environment Configuration
-Created `.env` file with:
-- EXPO_PUBLIC_SUPABASE_URL
-- EXPO_PUBLIC_SUPABASE_ANON_KEY
+
+For local development with Expo, configure your `.env` file to use **local Supabase**:
+
+**Get your local credentials:**
+```bash
+# Start local Supabase first
+npx supabase start
+
+# Get local environment variables
+npx supabase status -o env
+```
+
+This outputs environment variables you need:
+```bash
+SUPABASE_API_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Configure your `.env` file:**
+```bash
+# For Expo (EXPO_PUBLIC_ prefix required)
+# IMPORTANT: Use your computer's IP address for BOTH variables
+EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.42:54321  # Replace with YOUR computer's IP
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Your local computer's IP (for phone testing with Metro)
+REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42  # Same IP as above
+```
+
+**Port Forwarding (Automatic):**
+The devcontainer automatically forwards these ports from the container to your host machine:
+- `8081` - Metro Bundler (Expo dev server)
+- `54321` - Supabase API URL (forwarded to computer's network interface)
+- `54322` - PostgreSQL Database (direct DB access)
+- `54323` - Supabase Studio (web UI)
+- `54324` - Mailpit (email testing)
+
+**How Port Forwarding Works:**
+- Inside the devcontainer, Supabase runs on `127.0.0.1:54321` (localhost inside container)
+- The devcontainer forwards this to `0.0.0.0:54321` on your host machine (accessible from network)
+- Your phone can reach Supabase at your computer's IP: `http://192.168.1.42:54321`
+- Your phone connects to Metro Bundler at: `http://192.168.1.42:8081`
+
+> **Important:**
+> - **Both URLs need your computer's IP address**: `192.168.1.42` (not `127.0.0.1`)
+> - Your phone cannot access `127.0.0.1` - that's localhost on the phone itself
+> - Port forwarding makes `54321` accessible on your computer's network interface
+> - Use the **same IP address** for both `EXPO_PUBLIC_SUPABASE_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME`
 
 ### 3. Auth Settings
 In Supabase Dashboard → Authentication → Settings:
@@ -119,11 +172,21 @@ npx supabase stop
 
 ### Local Database URLs
 
-When `npx supabase start` is running:
-- **API URL**: `http://127.0.0.1:54321`
+**For your browser on your computer (localhost works here):**
+- **API URL**: `http://127.0.0.1:54321` (browser access only)
 - **Database**: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
-- **Studio UI**: `http://127.0.0.1:54323`
+- **Studio UI**: `http://127.0.0.1:54323` (open in browser on your computer)
 - **Email Testing (Mailpit)**: `http://127.0.0.1:54324`
+
+**For your phone (Expo app running on physical device):**
+- **API URL**: `http://192.168.1.42:54321` (use your computer's IP in `.env`)
+- **Metro Bundler**: `http://192.168.1.42:8081`
+
+**Why you need different URLs:**
+- **On your computer**: `127.0.0.1` (localhost) works for browser and development tools
+- **On your phone**: `127.0.0.1` refers to the phone itself, not your computer
+- **Port forwarding**: Makes `54321` accessible on your computer's network interface (`0.0.0.0:54321`)
+- **Your phone**: Must use your computer's IP address to reach the forwarded ports
 
 ## 🔄 Working with Migrations
 
@@ -142,12 +205,48 @@ npx supabase db diff -f add_feature_name
 
 ### Testing Migrations Locally
 
+#### `npx supabase db reset` (Safe - Use Frequently!)
+
+**What it does:**
+- Drops entire local database
+- Re-applies ALL migrations from scratch
+- Re-runs seed data (if configured)
+- Gives you a clean, consistent state
+
+**When to use:**
+- ✅ Before creating a PR (verify migrations work from clean state)
+- ✅ After pulling new migrations from `main`
+- ✅ When switching between feature branches
+- ✅ When your local DB gets into a weird state
+- ✅ To test that migrations are idempotent and complete
+
 ```bash
-# Apply all migrations from scratch (recommended for testing)
+# Reset local DB and apply all migrations
 npx supabase db reset
 
-# Or apply only new migrations
-npx supabase migration up
+# Watch the output for any migration errors
+# Each migration file should apply successfully
+```
+
+**Example workflow:**
+```bash
+# 1. Pull latest changes
+git pull origin main
+
+# 2. Reset local DB to match latest migrations
+npx supabase db reset
+
+# 3. Start developing
+# Make changes in Studio UI...
+
+# 4. Generate migration
+npx supabase db diff -f my_new_feature
+
+# 5. Test migration from clean state
+npx supabase db reset
+
+# 6. If reset succeeds, your migration is good!
+# Create PR with your migration file
 ```
 
 ### Syncing with Remote
@@ -155,10 +254,38 @@ npx supabase migration up
 ```bash
 # Pull latest schema from production (creates new migration file)
 npx supabase db pull
-
-# Note: DO NOT use `npx supabase db push` directly
-# Use the GitHub Actions workflow instead (see SUPABASE_WORKFLOW.md)
 ```
+
+### ⚠️ NEVER Run `npx supabase db push` Manually
+
+#### `npx supabase db push` (Dangerous - Only via CI/CD!)
+
+**What it does:**
+- Pushes local migrations directly to remote database
+- Bypasses all review and approval processes
+- Can break production immediately
+- No audit trail or rollback mechanism
+
+**When GitHub Actions uses it:**
+- ✅ Only after PR is merged to `main`
+- ✅ Only after manual approval from tech lead
+- ✅ With full audit trail in GitHub Actions logs
+- ✅ With automatic notifications and monitoring
+
+**Why you should NEVER run it manually:**
+- ❌ Bypasses code review
+- ❌ No approval gate
+- ❌ Could break production instantly
+- ❌ Hard to rollback
+- ❌ No visibility to team
+
+**If you accidentally run it:**
+1. Immediately notify team in Slack/Discord
+2. Check production database for issues
+3. Prepare rollback migration if needed
+4. Document what happened
+
+**The right way:** Use the GitHub Actions workflow (see [SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md))
 
 ## 🐳 Docker-in-Docker Configuration
 
