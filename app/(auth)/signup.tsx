@@ -128,7 +128,10 @@ export default function SignupScreen() {
               error={errors.password}
               secureTextEntry
               autoCapitalize="none"
-              autoComplete="password-new"
+              textContentType="oneTimeCode"
+              autoComplete="off"
+              autoCorrect={false}
+              spellCheck={false}
             />
 
             {password.length > 0 && (
@@ -159,7 +162,10 @@ export default function SignupScreen() {
               error={errors.confirmPassword}
               secureTextEntry
               autoCapitalize="none"
-              autoComplete="password-new"
+              textContentType="oneTimeCode"
+              autoComplete="off"
+              autoCorrect={false}
+              spellCheck={false}
             />
 
             <Button
