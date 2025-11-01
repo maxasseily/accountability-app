@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
+import { spacing } from '../../src/utils/spacing';
 
 // Generate fake credibility data for the last 30 days
 const generateFakeData = () => {
@@ -212,8 +213,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 48,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingTop: spacing.screenPaddingTop,
+    paddingBottom: spacing.screenPaddingBottom,
   },
   chartSection: {
     marginBottom: 32,

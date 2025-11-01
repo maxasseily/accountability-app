@@ -8,6 +8,7 @@ import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
+import { spacing } from '../../src/utils/spacing';
 import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
 
 export default function HomeScreen() {
@@ -191,23 +192,25 @@ export default function HomeScreen() {
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
       <View style={styles.container}>
-        {/* Logout Button - Top Right */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          <Ionicons name="log-out-outline" size={28} color={colors.textPrimary} />
-        </TouchableOpacity>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Welcome Section */}
+          {/* Welcome Section with Logout Button */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.nameText}>{user?.name}!</Text>
+            <View style={styles.welcomeRow}>
+              <View style={styles.welcomeTextContainer}>
+                <Text style={styles.welcomeText}>Welcome back,</Text>
+                <Text style={styles.nameText}>{user?.name}!</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+              >
+                <Ionicons name="log-out-outline" size={28} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Daily Photo Upload Section */}
@@ -417,14 +420,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 80,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingTop: spacing.screenPaddingTop,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingBottom: spacing.screenPaddingBottom,
   },
   logoutButton: {
-    position: 'absolute',
-    top: 48,
-    right: 24,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -433,10 +433,18 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
   welcomeSection: {
     marginBottom: 24,
+  },
+  welcomeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  welcomeTextContainer: {
+    flex: 1,
   },
   welcomeText: {
     fontSize: 20,
@@ -450,6 +458,7 @@ const styles = StyleSheet.create({
     textShadowColor: colors.accentGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
+    flexWrap: 'wrap',
   },
   photoCard: {
     backgroundColor: colors.glassLight,
