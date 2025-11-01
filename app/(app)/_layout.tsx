@@ -73,24 +73,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="post-photo"
-        options={{
-          title: 'Post Photo',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "camera" : "camera-outline"}
-              size={focused ? 26 : 24}
-              color={color}
-              style={{
-                textShadowColor: focused ? colors.accent : 'transparent',
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: focused ? 8 : 0,
-              }}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="groups"
         options={{
           title: 'Groups',
