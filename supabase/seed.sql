@@ -8,21 +8,27 @@
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000001'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'alice@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -30,31 +36,59 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Alice Johnson"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for alice@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000001', 'alice@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- User 2: bob@example.com
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000002'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'bob@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -62,31 +96,59 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Bob Smith"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for bob@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000002'::uuid,
+  '00000000-0000-0000-0000-000000000002'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000002', 'bob@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- User 3: charlie@example.com
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000003'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'charlie@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -94,31 +156,59 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Charlie Davis"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for charlie@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000003'::uuid,
+  '00000000-0000-0000-0000-000000000003'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000003', 'charlie@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- User 4: diana@example.com
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000004'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'diana@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -126,31 +216,59 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Diana Martinez"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for diana@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000004'::uuid,
+  '00000000-0000-0000-0000-000000000004'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000004', 'diana@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- User 5: evan@example.com
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000005'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'evan@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -158,31 +276,59 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Evan Wilson"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for evan@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000005'::uuid,
+  '00000000-0000-0000-0000-000000000005'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000005', 'evan@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- User 6: fiona@example.com
 insert into auth.users (
   id,
   instance_id,
+  aud,
+  role,
   email,
   encrypted_password,
   email_confirmed_at,
-  created_at,
-  updated_at,
+  recovery_sent_at,
+  last_sign_in_at,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
 )
 values (
   '00000000-0000-0000-0000-000000000006'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
   'fiona@example.com',
   crypt('password123', gen_salt('bf')),
   now(),
@@ -190,11 +336,33 @@ values (
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Fiona Lee"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
+  now(),
+  now(),
+  '',
+  '',
+  '',
   ''
 ) on conflict (id) do nothing;
+
+-- Create identity for fiona@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000006'::uuid,
+  '00000000-0000-0000-0000-000000000006'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000006', 'fiona@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
 
 -- Now insert the profiles (these will be auto-created by the trigger, but we'll update them with our custom data)
 -- User 1: alice@example.com
