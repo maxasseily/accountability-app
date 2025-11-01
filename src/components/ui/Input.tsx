@@ -58,6 +58,7 @@ export default function Input({
             textContentType={props.textContentType ?? 'none'}
             autoComplete={props.autoComplete ?? 'off'}
             importantForAutofill={props.importantForAutofill ?? 'no'}
+            keyboardAppearance="dark"
             {...props}
           />
           {secureTextEntry && (
