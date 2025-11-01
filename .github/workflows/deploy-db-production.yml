@@ -27,8 +27,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Supabase CLI
-        run: npm install -g supabase
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Verify migrations
         run: |
