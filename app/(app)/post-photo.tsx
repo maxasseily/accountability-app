@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, ActionSheetIOS, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors } from '../../src/utils/colors';
-import { pickDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
+import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
 
 export default function PostPhotoScreen() {
   const { user } = useAuth();
@@ -33,7 +33,46 @@ export default function PostPhotoScreen() {
     }
   };
 
-  const handleUploadPhoto = async () => {
+  const showPhotoOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            handleUploadPhoto('camera');
+          } else if (buttonIndex === 2) {
+            handleUploadPhoto('library');
+          }
+        }
+      );
+    } else {
+      // For Android, use Alert
+      Alert.alert(
+        'Upload Photo',
+        'Choose an option',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Take Photo',
+            onPress: () => handleUploadPhoto('camera'),
+          },
+          {
+            text: 'Choose from Library',
+            onPress: () => handleUploadPhoto('library'),
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  const handleUploadPhoto = async (source: 'camera' | 'library') => {
     if (!user) return;
 
     try {
@@ -47,8 +86,11 @@ export default function PostPhotoScreen() {
         return;
       }
 
-      // Pick image
-      const image = await pickDailyPhoto();
+      // Pick or take image based on source
+      const image = source === 'camera'
+        ? await takeDailyPhoto()
+        : await pickDailyPhoto();
+
       if (!image) return;
 
       setIsUploading(true);
@@ -80,7 +122,7 @@ export default function PostPhotoScreen() {
 
             <TouchableOpacity
               style={styles.imageFrame}
-              onPress={handleUploadPhoto}
+              onPress={showPhotoOptions}
               disabled={isUploading}
             >
               {isLoading ? (

@@ -20,7 +20,7 @@ export async function requestPermissions(): Promise<boolean> {
 }
 
 /**
- * Pick an image from the device gallery or camera
+ * Pick an image from the device gallery
  */
 export async function pickDailyPhoto(): Promise<ImagePicker.ImagePickerAsset | null> {
   try {
@@ -39,6 +39,29 @@ export async function pickDailyPhoto(): Promise<ImagePicker.ImagePickerAsset | n
   } catch (error) {
     console.error('Error picking image:', error);
     throw new Error('Failed to pick image');
+  }
+}
+
+/**
+ * Take a photo using the device camera
+ */
+export async function takeDailyPhoto(): Promise<ImagePicker.ImagePickerAsset | null> {
+  try {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      return result.assets[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error taking photo:', error);
+    throw new Error('Failed to take photo');
   }
 }
 
