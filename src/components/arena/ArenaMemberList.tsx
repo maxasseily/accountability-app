@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
@@ -8,6 +9,9 @@ import type { GroupMemberWithProfile } from '../../types/groups';
 import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 import { useGoal } from '../../context/GoalContext';
 import type { UserGoal } from '../../types/goals';
+import type { QuestType } from '../../types/arena';
+import { sendArenaQuestRequest } from '../../utils/arenaQuests';
+import { useGroup } from '../../context/GroupContext';
 
 interface ArenaMemberListProps {
   members: GroupMemberWithProfile[];
@@ -26,18 +30,56 @@ interface MemberItemProps {
 }
 
 interface ArenaAction {
-  id: string;
+  id: QuestType;
   label: string;
   icon: string;
   description: string;
+  color: string;
+  confirmMessage: string;
 }
 
 const ARENA_ACTIONS: ArenaAction[] = [
-  { id: 'alliance', label: 'Alliance', icon: '🤝', description: 'Form an alliance for mutual support' },
-  { id: 'battle', label: 'Battle', icon: '⚔️', description: 'Challenge them to a friendly competition' },
-  { id: 'prophecy', label: 'Prophecy', icon: '🔮', description: 'Make a prediction about their progress' },
-  { id: 'curse', label: 'Curse', icon: '💀', description: 'Cast a playful curse' },
+  {
+    id: 'alliance',
+    label: 'Alliance',
+    icon: '🤝',
+    description: 'Form an alliance for mutual support',
+    color: 'rgba(59, 130, 246, 0.15)', // Deep blue tinge (reduced for gradient overlay)
+    confirmMessage: 'Send an alliance request?'
+  },
+  {
+    id: 'battle',
+    label: 'Battle',
+    icon: '⚔️',
+    description: 'Challenge them to a friendly competition',
+    color: 'rgba(220, 38, 38, 0.15)', // Deep red tinge
+    confirmMessage: 'Send a battle challenge?'
+  },
+  {
+    id: 'prophecy',
+    label: 'Prophecy',
+    icon: '🔮',
+    description: 'Make a prediction about their progress',
+    color: 'rgba(147, 51, 234, 0.15)', // Deep purple tinge
+    confirmMessage: 'Send a prophecy request?'
+  },
+  {
+    id: 'curse',
+    label: 'Curse',
+    icon: '💀',
+    description: 'Cast a playful curse',
+    color: 'rgba(236, 72, 153, 0.15)', // Electric pink tinge
+    confirmMessage: 'Send a curse request?'
+  },
 ];
+
+// Gradient colors for each action type
+const ACTION_GRADIENTS: Record<string, string[]> = {
+  alliance: ['rgba(59, 130, 246, 0.4)', 'rgba(37, 99, 235, 0.2)', 'rgba(59, 130, 246, 0.1)'],
+  battle: ['rgba(220, 38, 38, 0.4)', 'rgba(185, 28, 28, 0.2)', 'rgba(220, 38, 38, 0.1)'],
+  prophecy: ['rgba(147, 51, 234, 0.4)', 'rgba(126, 34, 206, 0.2)', 'rgba(147, 51, 234, 0.1)'],
+  curse: ['rgba(236, 72, 153, 0.4)', 'rgba(219, 39, 119, 0.2)', 'rgba(236, 72, 153, 0.1)'],
+};
 
 function MemberItem({ member, isCurrentUser, onPhotoPress, onMemberPress, refreshToken }: MemberItemProps) {
   const { profile } = member;
@@ -143,14 +185,12 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, onMemberPress, refres
 }
 
 export default function ArenaMemberList({ members, currentUserId, refreshToken, onRefresh, isRefreshing }: ArenaMemberListProps) {
+  const { group } = useGroup();
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: DailyPhoto; name: string } | null>(null);
   const [selectedMember, setSelectedMember] = useState<GroupMemberWithProfile | null>(null);
-  const [arenaActions, setArenaActions] = useState<Record<string, boolean>>({
-    alliance: false,
-    battle: false,
-    prophecy: false,
-    curse: false,
-  });
+  const [selectedAction, setSelectedAction] = useState<ArenaAction | null>(null);
+  const [pendingQuestMember, setPendingQuestMember] = useState<GroupMemberWithProfile | null>(null);
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
 
   const handlePhotoPress = (photo: DailyPhoto, memberName: string) => {
     setSelectedPhoto({ photo, name: memberName });
@@ -162,27 +202,54 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
 
   const handleMemberPress = (member: GroupMemberWithProfile) => {
     setSelectedMember(member);
-    // Reset toggles when opening modal
-    setArenaActions({
-      alliance: false,
-      battle: false,
-      prophecy: false,
-      curse: false,
-    });
   };
 
   const handleCloseArenaModal = () => {
     setSelectedMember(null);
   };
 
-  const handleToggleAction = (actionId: string) => {
-    setArenaActions((prev) => ({
-      ...prev,
-      [actionId]: !prev[actionId],
-    }));
+  const handleActionPress = (action: ArenaAction) => {
+    // Store the member for the quest request
+    setPendingQuestMember(selectedMember);
+    setSelectedAction(action);
+    // Close the arena modal so confirmation modal appears on top
+    setSelectedMember(null);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setSelectedAction(null);
+    setPendingQuestMember(null);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!selectedAction || !pendingQuestMember || !group) return;
+
+    try {
+      setIsSendingRequest(true);
+
+      // Send the quest request
+      await sendArenaQuestRequest(
+        group.id,
+        pendingQuestMember.user_id,
+        selectedAction.id
+      );
+
+      // Close confirmation modal and clear pending member
+      setSelectedAction(null);
+      setPendingQuestMember(null);
+
+      // Refresh the list
+      onRefresh();
+    } catch (error) {
+      console.error('Error sending quest request:', error);
+      // TODO: Show error message to user
+    } finally {
+      setIsSendingRequest(false);
+    }
   };
 
   const memberName = selectedMember?.profile.full_name || selectedMember?.profile.email.split('@')[0] || 'User';
+  const pendingMemberName = pendingQuestMember?.profile.full_name || pendingQuestMember?.profile.email.split('@')[0] || 'User';
 
   return (
     <View style={styles.container}>
@@ -271,23 +338,82 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                 {/* Arena Actions */}
                 <View style={styles.arenaActionsContainer}>
                   {ARENA_ACTIONS.map((action) => (
-                    <View key={action.id} style={styles.arenaActionItem}>
-                      <View style={styles.arenaActionInfo}>
-                        <Text style={styles.arenaActionIcon}>{action.icon}</Text>
-                        <View style={styles.arenaActionText}>
-                          <Text style={styles.arenaActionLabel}>{action.label}</Text>
-                          <Text style={styles.arenaActionDescription}>{action.description}</Text>
-                        </View>
-                      </View>
-                      <Switch
-                        value={arenaActions[action.id]}
-                        onValueChange={() => handleToggleAction(action.id)}
-                        trackColor={{ false: colors.glassDark, true: colors.accent }}
-                        thumbColor={colors.textPrimary}
-                      />
-                    </View>
+                    <TouchableOpacity
+                      key={action.id}
+                      style={styles.arenaActionButton}
+                      onPress={() => handleActionPress(action)}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={ACTION_GRADIENTS[action.id] as any}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.arenaActionGradient}
+                      >
+                        <BlurView intensity={10} tint="dark" style={styles.arenaActionBlur}>
+                          <View style={styles.arenaActionContent}>
+                            <View style={styles.arenaActionInfo}>
+                              <Text style={styles.arenaActionIcon}>{action.icon}</Text>
+                              <View style={styles.arenaActionText}>
+                                <Text style={styles.arenaActionLabel}>{action.label}</Text>
+                                <Text style={styles.arenaActionDescription}>{action.description}</Text>
+                              </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
+                          </View>
+                        </BlurView>
+                      </LinearGradient>
+                    </TouchableOpacity>
                   ))}
                 </View>
+              </View>
+            </BlurView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={selectedAction !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseConfirmModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseConfirmModal}>
+          <Pressable style={styles.confirmModalContent} onPress={(e) => e.stopPropagation()}>
+            <BlurView intensity={40} tint="dark" style={styles.confirmModalBlur}>
+              <View style={styles.confirmModalInner}>
+                {selectedAction && (
+                  <>
+                    <Text style={styles.confirmIcon}>{selectedAction.icon}</Text>
+                    <Text style={styles.confirmTitle}>{selectedAction.confirmMessage}</Text>
+                    <Text style={styles.confirmSubtitle}>
+                      {selectedAction.label} with {pendingMemberName}
+                    </Text>
+
+                    <View style={styles.confirmButtons}>
+                      <TouchableOpacity
+                        style={[styles.confirmButton, styles.cancelButton]}
+                        onPress={handleCloseConfirmModal}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.confirmButton, styles.sendButton]}
+                        onPress={handleConfirmAction}
+                        activeOpacity={0.7}
+                        disabled={isSendingRequest}
+                      >
+                        {isSendingRequest ? (
+                          <ActivityIndicator size="small" color={colors.backgroundStart} />
+                        ) : (
+                          <Text style={styles.sendButtonText}>Send Request</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
               </View>
             </BlurView>
           </Pressable>
@@ -508,15 +634,29 @@ const styles = StyleSheet.create({
   arenaActionsContainer: {
     gap: spacing.paddingMedium,
   },
-  arenaActionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.glassDark,
-    padding: spacing.paddingMedium,
+  arenaActionButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  arenaActionGradient: {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.glassBorder,
+  },
+  arenaActionBlur: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  arenaActionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.paddingMedium,
   },
   arenaActionInfo: {
     flex: 1,
@@ -526,18 +666,94 @@ const styles = StyleSheet.create({
   },
   arenaActionIcon: {
     fontSize: 32,
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   arenaActionText: {
     flex: 1,
   },
   arenaActionLabel: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 4,
+    textShadowColor: 'rgba(255, 255, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   arenaActionDescription: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  confirmModalContent: {
+    width: '85%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    marginTop: 'auto',
+    marginBottom: 'auto',
+  },
+  confirmModalBlur: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+  },
+  confirmModalInner: {
+    backgroundColor: colors.glassLight,
+    padding: spacing.paddingXl,
+    alignItems: 'center',
+  },
+  confirmIcon: {
+    fontSize: 64,
+    marginBottom: spacing.paddingMedium,
+  },
+  confirmTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingXs,
+    textShadowColor: colors.accentGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  confirmSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingXl,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: spacing.paddingMedium,
+    width: '100%',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: spacing.paddingMedium,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.glassDark,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  sendButton: {
+    backgroundColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  sendButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.backgroundStart,
   },
 });
