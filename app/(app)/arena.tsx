@@ -7,6 +7,8 @@ import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import ArenaMemberList from '../../src/components/arena/ArenaMemberList';
+import QuestsSection from '../../src/components/arena/QuestsSection';
+import RequestsSection from '../../src/components/arena/RequestsSection';
 import { useGroup } from '../../src/context/GroupContext';
 import { useAuth } from '../../src/context/AuthContext';
 
@@ -75,6 +77,18 @@ export default function ArenaScreen() {
                 refreshToken={refreshToken}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
+              />
+
+              <QuestsSection
+                groupId={group.id}
+                currentUserId={user.id}
+                refreshToken={refreshToken}
+              />
+
+              <RequestsSection
+                currentUserId={user.id}
+                refreshToken={refreshToken}
+                onRefresh={handleRefresh}
               />
             </>
           ) : (
