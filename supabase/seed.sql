@@ -664,3 +664,61 @@ begin
     completion_dates = excluded.completion_dates;
 
 end $$;
+
+-- Seed arena quests for the group
+-- These will showcase different quest types between the 3 group members (Alice, Bob, Charlie)
+
+-- Alice and Bob are in an alliance (accepted)
+insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
+  '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (sender)
+  '00000000-0000-0000-0000-000000000002'::uuid,  -- Bob (receiver)
+  'alliance',
+  'accepted',
+  now() - interval '2 days'
+) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+
+-- Bob and Charlie are battling it out (accepted)
+insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
+  '00000000-0000-0000-0000-000000000002'::uuid,  -- Bob (sender)
+  '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (receiver)
+  'battle',
+  'accepted',
+  now() - interval '1 day'
+) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+
+-- Alice is prophesying about Charlie (accepted)
+insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
+  '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (sender)
+  '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (receiver)
+  'prophecy',
+  'accepted',
+  now() - interval '3 days'
+) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+
+-- Charlie has put a curse on Alice (accepted)
+insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
+  '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (sender)
+  '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (receiver)
+  'curse',
+  'accepted',
+  now() - interval '4 days'
+) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+
+-- Pending request: Charlie sent a battle request to Alice (pending)
+insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
+  '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (sender)
+  '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (receiver)
+  'battle',
+  'pending',
+  now() - interval '12 hours'
+) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
