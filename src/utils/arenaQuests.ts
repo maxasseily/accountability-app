@@ -142,25 +142,22 @@ export async function getPendingQuestsForUser(
 /**
  * Format a quest for display
  */
-export function formatQuestDisplay(
-  quest: ArenaQuestWithProfiles,
-  currentUserId: string
-): string {
-  const isSender = quest.sender_id === currentUserId;
-  const otherUserName =
-    (isSender ? quest.receiver_profile.full_name : quest.sender_profile.full_name) ||
-    (isSender ? quest.receiver_profile.email : quest.sender_profile.email).split('@')[0];
+export function formatQuestDisplay(quest: ArenaQuestWithProfiles): string {
+  const senderName =
+    quest.sender_profile.full_name || quest.sender_profile.email.split('@')[0];
+  const receiverName =
+    quest.receiver_profile.full_name || quest.receiver_profile.email.split('@')[0];
 
   switch (quest.quest_type) {
     case 'alliance':
-      return `Alliance with ${otherUserName}`;
+      return `${senderName} is in an alliance with ${receiverName} 🤝`;
     case 'battle':
-      return `Battle against ${otherUserName}`;
+      return `${senderName} and ${receiverName} are battling it out ⚔️`;
     case 'prophecy':
-      return isSender ? `Prophecy on ${otherUserName}` : `Prophecy by ${otherUserName}`;
+      return `${senderName} is prophesying about ${receiverName} 🔮`;
     case 'curse':
-      return isSender ? `Curse on ${otherUserName}` : `Curse by ${otherUserName}`;
+      return `${senderName} has put a curse on ${receiverName} 💀`;
     default:
-      return `Quest with ${otherUserName}`;
+      return `${senderName} and ${receiverName} are on a quest`;
   }
 }
