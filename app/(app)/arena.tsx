@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import GradientBackground from '../../src/components/ui/GradientBackground';
-import MemberList from '../../src/components/groups/MemberList';
+import ArenaMemberList from '../../src/components/arena/ArenaMemberList';
 import { useGroup } from '../../src/context/GroupContext';
 import { useAuth } from '../../src/context/AuthContext';
 
@@ -69,7 +69,7 @@ export default function ArenaScreen() {
                 <Text style={styles.explainer}>Make predictions, or duel your group members!</Text>
               </View>
 
-              <MemberList
+              <ArenaMemberList
                 members={group.members}
                 currentUserId={user.id}
                 refreshToken={refreshToken}
