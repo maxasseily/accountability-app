@@ -125,8 +125,8 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const updatedGoal = await incrementGoalProgressDb(user.id);
-      setGoalState(updatedGoal);
+      const result = await incrementGoalProgressDb(user.id);
+      setGoalState(result.goal);
     } catch (error) {
       console.error('Error incrementing progress:', error);
       throw error;

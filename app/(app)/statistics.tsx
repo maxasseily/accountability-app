@@ -1,14 +1,18 @@
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Modal, Animated, Switch } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Modal, Animated, Switch, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Svg, Polyline, Line, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useGoal } from '../../src/context/GoalContext';
+import { useAuth } from '../../src/context/AuthContext';
+import { getOrCreateUserStatistics } from '../../src/lib/statistics';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import type { UserStatistics } from '../../src/types/statistics';
 
 // Generate fake credibility data for different time periods
 const generateCredibilityData = (period: TimePeriod) => {
@@ -65,6 +69,11 @@ const generateGoalCompletionData = (period: TimePeriod, frequency: number) => {
   }
 
   return { data, goalTotal };
+};
+
+const formatMojo = (value: number) => {
+  const fixed = value.toFixed(2);
+  return Number(fixed).toString();
 };
 
 const screenWidth = Dimensions.get('window').width;
@@ -383,23 +392,88 @@ const GoalProgressBarChart = ({ data, goalTotal }: { data: any[]; goalTotal: num
 };
 
 export default function StatisticsScreen() {
-  const { goal, hasGoal, getProgress } = useGoal();
-  const progress = getProgress();
+  const { user } = useAuth();
+  const { goal, hasGoal } = useGoal();
   const insets = useSafeAreaInsets();
 
   const [viewMode, setViewMode] = useState<ViewMode>('personal');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
   const [showCredibilityInfo, setShowCredibilityInfo] = useState(false);
   const [showStatusLadder, setShowStatusLadder] = useState(false);
+  const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Generate data based on selected periods
   const [credibilityData, setCredibilityData] = useState(() => generateCredibilityData('week'));
 
-  useEffect(() => {
-    setCredibilityData(generateCredibilityData(timePeriod));
-  }, [timePeriod]);
+  const loadStatistics = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return;
+    }
 
-  const currentScore = credibilityData[credibilityData.length - 1].credibility;
+    if (!user) {
+      setStatistics(null);
+      setIsStatsLoading(false);
+      return;
+    }
+
+    setIsStatsLoading(true);
+
+    try {
+      const result = await getOrCreateUserStatistics(user.id);
+      if (!isMountedRef.current) {
+        return;
+      }
+      setStatistics(result);
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+      if (!isMountedRef.current) {
+        return;
+      }
+      setStatistics(null);
+    } finally {
+      if (!isMountedRef.current) {
+        return;
+      }
+      setIsStatsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadStatistics();
+  }, [loadStatistics]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadStatistics();
+    }, [loadStatistics])
+  );
+
+  useEffect(() => {
+    setCredibilityData(() => {
+      const data = generateCredibilityData(timePeriod);
+      if (statistics?.credibility !== undefined && data.length > 0) {
+        const updated = [...data];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          credibility: statistics.credibility,
+        };
+        return updated;
+      }
+      return data;
+    });
+  }, [timePeriod, statistics?.credibility]);
+
+  const currentScore =
+    statistics?.credibility ?? (credibilityData.length ? credibilityData[credibilityData.length - 1].credibility : 0);
   const currentStatus = useMemo(() => getCurrentStatus(currentScore), [currentScore]);
 
   const goalData = hasGoal && goal ? generateGoalCompletionData(timePeriod, goal.frequency) : null;
@@ -456,10 +530,33 @@ export default function StatisticsScreen() {
                   </TouchableOpacity>
                 </View>
                 <View style={styles.credibilityScoreCard}>
-                  <View style={styles.scoreDisplay}>
-                    <Text style={styles.largeScoreValue}>{currentScore}</Text>
-                    <Text style={styles.scoreOutOf}>/100</Text>
-                  </View>
+                  {isStatsLoading ? (
+                    <ActivityIndicator color={colors.accent} />
+                  ) : (
+                    <View style={styles.scoreDisplay}>
+                      <Text style={styles.largeScoreValue}>{Math.max(0, Math.round(currentScore))}</Text>
+                      <Text style={styles.scoreOutOf}>/100</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.statSummaryRow}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statCardLabel}>Lifetime Goals Logged</Text>
+                  {isStatsLoading ? (
+                    <ActivityIndicator color={colors.accent} size="small" />
+                  ) : (
+                    <Text style={styles.statCardValue}>{statistics?.lifetimeGoalsLogged ?? 0}</Text>
+                  )}
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statCardLabel}>Mojo</Text>
+                  {isStatsLoading ? (
+                    <ActivityIndicator color={colors.accent} size="small" />
+                  ) : (
+                    <Text style={styles.statCardValue}>{statistics ? formatMojo(statistics.mojo) : '0'}</Text>
+                  )}
                 </View>
               </View>
 
@@ -796,6 +893,36 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     padding: 32,
     alignItems: 'center',
+  },
+  statSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    marginBottom: 24,
+  },
+  statCard: {
+    width: '48%',
+    backgroundColor: colors.glassLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 110,
+  },
+  statCardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  statCardValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   scoreDisplay: {
     flexDirection: 'row',
