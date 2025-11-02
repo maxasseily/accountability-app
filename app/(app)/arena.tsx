@@ -81,7 +81,6 @@ export default function ArenaScreen() {
 
               <QuestsSection
                 groupId={group.id}
-                currentUserId={user.id}
                 refreshToken={refreshToken}
               />
 

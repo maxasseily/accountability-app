@@ -8,11 +8,10 @@ import { getAcceptedQuestsForGroup, formatQuestDisplay } from '../../utils/arena
 
 interface QuestsSectionProps {
   groupId: string;
-  currentUserId: string;
   refreshToken: number;
 }
 
-export default function QuestsSection({ groupId, currentUserId, refreshToken }: QuestsSectionProps) {
+export default function QuestsSection({ groupId, refreshToken }: QuestsSectionProps) {
   const [quests, setQuests] = useState<ArenaQuestWithProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,14 +48,8 @@ export default function QuestsSection({ groupId, currentUserId, refreshToken }: 
             <View style={styles.questsList}>
               {quests.map((quest) => (
                 <View key={quest.id} style={styles.questItem}>
-                  <Text style={styles.questIcon}>
-                    {quest.quest_type === 'alliance' && '🤝'}
-                    {quest.quest_type === 'battle' && '⚔️'}
-                    {quest.quest_type === 'prophecy' && '🔮'}
-                    {quest.quest_type === 'curse' && '💀'}
-                  </Text>
                   <Text style={styles.questText}>
-                    {formatQuestDisplay(quest, currentUserId)}
+                    {formatQuestDisplay(quest)}
                   </Text>
                 </View>
               ))}
@@ -107,8 +100,6 @@ const styles = StyleSheet.create({
     gap: spacing.paddingMedium,
   },
   questItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: spacing.paddingSmall,
     paddingHorizontal: spacing.paddingMedium,
     backgroundColor: colors.glassDark,
@@ -116,12 +107,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.glassBorder,
   },
-  questIcon: {
-    fontSize: 24,
-    marginRight: spacing.paddingMedium,
-  },
   questText: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
