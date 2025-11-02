@@ -1,10 +1,19 @@
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import { colors } from '../../utils/colors';
 import { spacing } from '../../utils/spacing';
-import type { ArenaQuestWithProfiles } from '../../types/arena';
+import type { ArenaQuestWithProfiles, QuestType } from '../../types/arena';
 import { getAcceptedQuestsForGroup, formatQuestDisplay } from '../../utils/arenaQuests';
+
+// Gradient colors for each quest type (same as ArenaMemberList)
+const QUEST_GRADIENTS: Record<QuestType, string[]> = {
+  alliance: ['rgba(59, 130, 246, 0.4)', 'rgba(37, 99, 235, 0.2)', 'rgba(59, 130, 246, 0.1)'],
+  battle: ['rgba(220, 38, 38, 0.4)', 'rgba(185, 28, 28, 0.2)', 'rgba(220, 38, 38, 0.1)'],
+  prophecy: ['rgba(147, 51, 234, 0.4)', 'rgba(126, 34, 206, 0.2)', 'rgba(147, 51, 234, 0.1)'],
+  curse: ['rgba(236, 72, 153, 0.4)', 'rgba(219, 39, 119, 0.2)', 'rgba(236, 72, 153, 0.1)'],
+};
 
 interface QuestsSectionProps {
   groupId: string;
@@ -47,10 +56,21 @@ export default function QuestsSection({ groupId, refreshToken }: QuestsSectionPr
           ) : (
             <View style={styles.questsList}>
               {quests.map((quest) => (
-                <View key={quest.id} style={styles.questItem}>
-                  <Text style={styles.questText}>
-                    {formatQuestDisplay(quest)}
-                  </Text>
+                <View key={quest.id} style={styles.questItemWrapper}>
+                  <LinearGradient
+                    colors={QUEST_GRADIENTS[quest.quest_type] as any}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.questGradient}
+                  >
+                    <BlurView intensity={10} tint="dark" style={styles.questBlur}>
+                      <View style={styles.questItem}>
+                        <Text style={styles.questText}>
+                          {formatQuestDisplay(quest)}
+                        </Text>
+                      </View>
+                    </BlurView>
+                  </LinearGradient>
                 </View>
               ))}
             </View>
@@ -99,13 +119,27 @@ const styles = StyleSheet.create({
   questsList: {
     gap: spacing.paddingMedium,
   },
-  questItem: {
-    paddingVertical: spacing.paddingSmall,
-    paddingHorizontal: spacing.paddingMedium,
-    backgroundColor: colors.glassDark,
+  questItemWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  questGradient: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.glassBorder,
+  },
+  questBlur: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  questItem: {
+    paddingVertical: spacing.paddingSmall,
+    paddingHorizontal: spacing.paddingMedium,
   },
   questText: {
     fontSize: 15,
