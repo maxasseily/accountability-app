@@ -11,7 +11,7 @@ export default function GoalConfirmationScreen() {
   const { goal } = useGoal();
 
   const handleContinue = () => {
-    router.replace('/(app)/home');
+    router.push('/(onboarding)/credibility-mojo-intro');
   };
 
   return (
@@ -44,6 +44,9 @@ export default function GoalConfirmationScreen() {
             </View>
             <Text style={styles.summaryHint}>
               Track your progress and stay accountable!
+            </Text>
+            <Text style={styles.changeHint}>
+              You can change your goals or frequency later in settings.
             </Text>
           </View>
 
@@ -142,6 +145,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  changeHint: {
+    fontSize: 11,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
     fontStyle: 'italic',
   },
   continueButton: {
