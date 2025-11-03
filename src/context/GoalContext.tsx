@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { UserGoal, GoalType, GoalFrequency, GoalProgress } from '../types/goals';
 import { useAuth } from './AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  getUserGoalFromDb,
+  createGoal as createGoalDb,
+  updateGoal as updateGoalDb,
+  incrementGoalProgress as incrementGoalProgressDb,
+  resetWeeklyProgress as resetWeeklyProgressDb,
+  getAnyUserGoal,
+} from '../lib/goals';
 
 interface GoalContextType {
   goal: UserGoal | null;
@@ -18,20 +25,15 @@ interface GoalContextType {
 
 const GoalContext = createContext<GoalContextType | undefined>(undefined);
 
-// Helper to get the start of the current week (Monday)
-function getWeekStartDate(): string {
+// Check if we're in a new week
+function isNewWeek(weekStartDate: string): boolean {
   const now = new Date();
   const dayOfWeek = now.getDay();
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Sunday (0) to be part of previous week
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(now);
   monday.setDate(now.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
-  return monday.toISOString();
-}
-
-// Check if we're in a new week
-function isNewWeek(weekStartDate: string): boolean {
-  const currentWeekStart = getWeekStartDate();
+  const currentWeekStart = monday.toISOString();
   return new Date(currentWeekStart) > new Date(weekStartDate);
 }
 
@@ -46,12 +48,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   const [goal, setGoalState] = useState<UserGoal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Storage key for user's goal
-  const getStorageKey = useCallback(() => {
-    return `user_goal_${user?.id}`;
-  }, [user?.id]);
-
-  // Load goal from storage
+  // Load goal from database
   const loadGoal = useCallback(async () => {
     if (!user) {
       setGoalState(null);
@@ -61,29 +58,16 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsLoading(true);
-      const key = getStorageKey();
-      const storedGoal = await AsyncStorage.getItem(key);
+      const userGoal = await getUserGoalFromDb(user.id);
 
-      if (storedGoal) {
-        const parsedGoal: UserGoal = JSON.parse(storedGoal);
-
+      if (userGoal) {
         // Check if we need to reset for a new week
-        if (isNewWeek(parsedGoal.weekStartDate)) {
-          parsedGoal.currentProgress = 0;
-          parsedGoal.weekStartDate = getWeekStartDate();
-          parsedGoal.completionDates = [];
-          await AsyncStorage.setItem(key, JSON.stringify(parsedGoal));
+        if (isNewWeek(userGoal.weekStartDate)) {
+          const resetGoal = await resetWeeklyProgressDb(user.id);
+          setGoalState(resetGoal);
+        } else {
+          setGoalState(userGoal);
         }
-
-        // Ensure new fields exist for backward compatibility
-        if (!parsedGoal.lastCompletionDate) {
-          parsedGoal.lastCompletionDate = null;
-        }
-        if (!parsedGoal.completionDates) {
-          parsedGoal.completionDates = [];
-        }
-
-        setGoalState(parsedGoal);
       } else {
         setGoalState(null);
       }
@@ -93,7 +77,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, getStorageKey]);
+  }, [user]);
 
   // Load goal when user changes
   useEffect(() => {
@@ -106,22 +90,8 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Not authenticated');
     }
 
-    const newGoal: UserGoal = {
-      id: `goal_${Date.now()}`,
-      userId: user.id,
-      goalType,
-      frequency,
-      currentProgress: 0,
-      weekStartDate: getWeekStartDate(),
-      lastCompletionDate: null,
-      completionDates: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
-      const key = getStorageKey();
-      await AsyncStorage.setItem(key, JSON.stringify(newGoal));
+      const newGoal = await createGoalDb(user.id, goalType, frequency);
       setGoalState(newGoal);
     } catch (error) {
       console.error('Error setting goal:', error);
@@ -135,20 +105,8 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       throw new Error('No goal to update');
     }
 
-    const updatedGoal: UserGoal = {
-      ...goal,
-      goalType,
-      frequency,
-      currentProgress: 0, // Reset progress when changing goal
-      weekStartDate: getWeekStartDate(),
-      lastCompletionDate: null,
-      completionDates: [],
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
-      const key = getStorageKey();
-      await AsyncStorage.setItem(key, JSON.stringify(updatedGoal));
+      const updatedGoal = await updateGoalDb(user.id, goalType, frequency);
       setGoalState(updatedGoal);
     } catch (error) {
       console.error('Error updating goal:', error);
@@ -158,42 +116,16 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
 
   // Increment progress (e.g., when user completes a run)
   const incrementProgress = async () => {
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
+
     if (!goal) {
       throw new Error('No goal set');
     }
 
-    const today = getTodayDateString();
-
-    // Check if already logged today
-    if (goal.lastCompletionDate === today) {
-      throw new Error('Already logged a run today');
-    }
-
-    // Check if we need to reset for a new week
-    let currentGoal = goal;
-    if (isNewWeek(goal.weekStartDate)) {
-      currentGoal = {
-        ...goal,
-        currentProgress: 0,
-        weekStartDate: getWeekStartDate(),
-        completionDates: [],
-      };
-    }
-
-    // Add today to completion dates
-    const newCompletionDates = [...currentGoal.completionDates, today];
-
-    const updatedGoal: UserGoal = {
-      ...currentGoal,
-      currentProgress: Math.min(currentGoal.currentProgress + 1, currentGoal.frequency),
-      lastCompletionDate: today,
-      completionDates: newCompletionDates,
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
-      const key = getStorageKey();
-      await AsyncStorage.setItem(key, JSON.stringify(updatedGoal));
+      const updatedGoal = await incrementGoalProgressDb(user.id);
       setGoalState(updatedGoal);
     } catch (error) {
       console.error('Error incrementing progress:', error);
@@ -214,19 +146,10 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
 
   // Reset weekly progress (called automatically, but can be called manually)
   const resetWeeklyProgress = async () => {
-    if (!goal) return;
-
-    const resetGoal: UserGoal = {
-      ...goal,
-      currentProgress: 0,
-      weekStartDate: getWeekStartDate(),
-      completionDates: [],
-      updatedAt: new Date().toISOString(),
-    };
+    if (!user || !goal) return;
 
     try {
-      const key = getStorageKey();
-      await AsyncStorage.setItem(key, JSON.stringify(resetGoal));
+      const resetGoal = await resetWeeklyProgressDb(user.id);
       setGoalState(resetGoal);
     } catch (error) {
       console.error('Error resetting progress:', error);
@@ -244,33 +167,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   // Get goal for any user (for displaying in groups)
   const getUserGoal = async (userId: string): Promise<UserGoal | null> => {
     try {
-      const key = `user_goal_${userId}`;
-      const storedGoal = await AsyncStorage.getItem(key);
-
-      if (storedGoal) {
-        const parsedGoal: UserGoal = JSON.parse(storedGoal);
-
-        // Check if we need to reset for a new week
-        if (isNewWeek(parsedGoal.weekStartDate)) {
-          parsedGoal.currentProgress = 0;
-          parsedGoal.weekStartDate = getWeekStartDate();
-          parsedGoal.completionDates = [];
-          // Update the stored goal
-          await AsyncStorage.setItem(key, JSON.stringify(parsedGoal));
-        }
-
-        // Ensure new fields exist for backward compatibility
-        if (!parsedGoal.lastCompletionDate) {
-          parsedGoal.lastCompletionDate = null;
-        }
-        if (!parsedGoal.completionDates) {
-          parsedGoal.completionDates = [];
-        }
-
-        return parsedGoal;
-      }
-
-      return null;
+      return await getAnyUserGoal(userId);
     } catch (error) {
       console.error('Error getting user goal:', error);
       return null;
