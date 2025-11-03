@@ -12,4 +12,6 @@ export interface UserStatistics {
 export interface GoalCompletionResult {
   goal: UserGoal;
   statistics: UserStatistics;
+  mojoGained?: number;
+  weeklyGoalCompleted?: boolean;
 }
