@@ -133,6 +133,8 @@ export async function incrementGoalProgress(userId: string): Promise<GoalComplet
   return {
     goal: mapDbToUserGoal(data.goal),
     statistics: mapRowToUserStatistics(data.statistics),
+    mojoGained: data.mojo_gained,
+    weeklyGoalCompleted: data.weekly_goal_completed,
   };
 }
 
