@@ -2,9 +2,31 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation Maintenance
+
+**IMPORTANT: When making large changes to the codebase, you MUST update both README.md and CLAUDE.md to reflect those changes.**
+
+This includes:
+- Adding new features or major functionality (e.g., new screens, systems, or workflows)
+- Changing project architecture or technology stack
+- Adding/removing dependencies or tools
+- Modifying database schema in significant ways
+- Changing development workflows or commands
+- Adding new route groups or navigation patterns
+- Updating the project structure (new directories, major refactoring)
+
+**How to update:**
+1. **README.md** - Focus on user-facing features and getting started guides
+2. **CLAUDE.md** - Focus on technical architecture, conventions, and developer guidance
+3. Keep both files in sync with the current state of the codebase
+4. Update the "Project Structure" section when files/folders change
+5. Update the "Current Routes" section when adding new screens
+
+**When in doubt, update the docs!** Well-maintained documentation prevents confusion and helps onboard new developers.
+
 ## Project Overview
 
-This is a React Native accountability app built with Expo and TypeScript. The project uses a devcontainer-based development environment with Node.js 18.
+This is a React Native accountability app built with Expo and TypeScript. The app features a gamified system for goal tracking with credibility scores, mojo currency, group challenges, and competitive quests. The project uses a devcontainer-based development environment with Node.js 20.
 
 ## Development Environment
 
@@ -57,29 +79,72 @@ The project is configured to run in a devcontainer with:
 ```
 accountability-app/
 ├── app/                      # File-based routing (Expo Router)
-│   ├── _layout.tsx           # Root layout with AuthProvider
+│   ├── _layout.tsx           # Root layout with AuthProvider and GoalProvider
 │   ├── index.tsx             # Entry point (redirects based on auth state)
 │   ├── (auth)/               # Auth route group (login, signup, reset)
 │   │   ├── _layout.tsx       # Auth layout (no header)
 │   │   ├── login.tsx         # Login screen
 │   │   ├── signup.tsx        # Signup screen with password strength
 │   │   └── reset-password.tsx # Password reset flow
-│   └── (app)/                # Protected app route group
-│       ├── _layout.tsx       # App layout
-│       └── home.tsx          # Main home screen
+│   ├── (onboarding)/         # First-time user onboarding flow
+│   │   ├── credibility-mojo-intro.tsx    # Explain credibility & mojo system
+│   │   ├── quest-types-intro.tsx         # Explain quest types (Alliance, Battle, etc.)
+│   │   ├── goal-selection.tsx            # Choose goal type (running)
+│   │   ├── frequency-selection.tsx       # Choose frequency (3x/week)
+│   │   └── goal-confirmation.tsx         # Confirm goal setup
+│   └── (app)/                # Protected app route group (tab-based navigation)
+│       ├── _layout.tsx       # Tab navigator with 4 tabs
+│       ├── home.tsx          # Home screen with photo upload & goal progress
+│       ├── arena.tsx         # Quest system and gamification
+│       ├── statistics.tsx    # Personal stats & group leaderboard
+│       └── groups/           # Group management screens
+│           ├── index.tsx     # Groups overview (view members)
+│           ├── create.tsx    # Create new group
+│           ├── join.tsx      # Join existing group
+│           └── chat.tsx      # Group chat screen
 ├── src/
 │   ├── components/
 │   │   ├── ui/               # Reusable UI components
 │   │   │   ├── Button.tsx    # Gradient button with variants
 │   │   │   ├── Input.tsx     # Glassmorphic input with validation
 │   │   │   └── GradientBackground.tsx # Animated gradient bg
-│   │   └── auth/
-│   │       └── AuthCard.tsx  # Glassmorphic auth card container
+│   │   ├── auth/
+│   │   │   └── AuthCard.tsx  # Glassmorphic auth card container
+│   │   ├── groups/           # Group-specific components
+│   │   │   ├── GroupHeader.tsx
+│   │   │   ├── MemberList.tsx
+│   │   │   └── NoGroupState.tsx
+│   │   ├── chat/             # Chat components
+│   │   │   ├── MessageBubble.tsx
+│   │   │   ├── MessageInput.tsx
+│   │   │   └── MessageList.tsx
+│   │   ├── arena/            # Arena/quest components
+│   │   │   ├── ArenaMemberList.tsx
+│   │   │   ├── QuestsSection.tsx
+│   │   │   └── RequestsSection.tsx
+│   │   └── navigation/
+│   │       └── SwipeablePages.tsx
 │   ├── context/
-│   │   └── AuthContext.tsx   # Mock auth state management
+│   │   ├── AuthContext.tsx   # Supabase auth state management
+│   │   ├── GroupContext.tsx  # Group state management
+│   │   └── GoalContext.tsx   # Goal state & weekly progress tracking
+│   ├── lib/
+│   │   ├── supabase.ts       # Database connection
+│   │   ├── goals.ts          # Goal database operations
+│   │   ├── groups.ts         # Group database operations
+│   │   └── statistics.ts     # Statistics queries
+│   ├── types/
+│   │   ├── groups.ts         # TypeScript types for groups
+│   │   ├── goals.ts          # TypeScript types for goals
+│   │   ├── statistics.ts     # TypeScript types for statistics
+│   │   └── arena.ts          # TypeScript types for quests
 │   └── utils/
 │       ├── colors.ts         # Futuristic theme colors
-│       └── validation.ts     # Form validation helpers
+│       ├── spacing.ts        # Spacing constants
+│       ├── validation.ts     # Form validation helpers
+│       ├── dailyPhoto.ts     # Photo upload/fetch logic
+│       ├── groups.ts         # Group creation/join logic
+│       └── arenaQuests.ts    # Quest logic
 ├── assets/                   # App icons, splash screens, fonts, images
 ├── supabase/                 # Supabase local development
 │   ├── migrations/           # Database schema migrations (version controlled)
@@ -100,9 +165,11 @@ accountability-app/
 - **Expo Router v6** for file-based navigation with route groups
 - **React 19.1** with React Native 0.81
 - **TypeScript 5.9** with strict mode enabled
+- **Supabase** for authentication, database, storage, and real-time features
 - **expo-linear-gradient** for gradient backgrounds
 - **expo-blur** for glassmorphism effects
-- Mock authentication (no backend integration yet)
+- **expo-image-picker** for camera and photo library access
+- **React Native SVG** for charts and visualizations
 
 ## Design System
 
@@ -118,17 +185,35 @@ This project uses **Expo Router** for file-based routing with **route groups**.
 
 ### Current Routes
 
-- `/` - Entry point, redirects to login or home based on auth state
+**Authentication:**
+- `/` - Entry point, redirects to login or onboarding/home based on auth state
 - `/(auth)/login` - Login screen
 - `/(auth)/signup` - Signup screen with password strength indicator
 - `/(auth)/reset-password` - Password reset flow
-- `/(app)/home` - Protected home screen (requires authentication)
+
+**Onboarding (first-time users):**
+- `/(onboarding)/credibility-mojo-intro` - Explain credibility and mojo concepts
+- `/(onboarding)/quest-types-intro` - Explain quest types (Alliance, Battle, Prophecy, Curse)
+- `/(onboarding)/goal-selection` - Choose goal type (currently only running)
+- `/(onboarding)/frequency-selection` - Choose frequency (currently only 3x/week)
+- `/(onboarding)/goal-confirmation` - Confirm and finalize goal setup
+
+**Protected App (tab-based navigation):**
+- `/(app)/home` - Home screen with daily photo upload and goal progress tracking
+- `/(app)/groups/` - Group management screens
+  - `index` - View group members and their photos
+  - `create` - Create new group with 6-digit join code
+  - `join` - Join existing group
+  - `chat` - Group chat with real-time messaging
+- `/(app)/arena` - Quest system with competitive and collaborative challenges
+- `/(app)/statistics` - Personal stats dashboard and group leaderboard
 
 ### Route Groups
 
 Route groups use parentheses `(name)` to organize routes without affecting URL structure:
 - `(auth)` - Authentication screens (headerless)
-- `(app)` - Protected app screens (with header)
+- `(onboarding)` - First-time user onboarding flow (headerless)
+- `(app)` - Protected app screens with tab navigation (requires authentication)
 
 ### Navigation
 
@@ -170,9 +255,32 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<production-anon-key>
 - Get credentials: `npx supabase status -o env`
 
 **Database Schema**:
-- `profiles` table stores user data (full_name, avatar_url)
-- Row Level Security (RLS) enabled for data protection
-- Automatic profile creation on signup via trigger
+
+**User Data:**
+- `profiles` - User profile information (full_name, email, avatar_url)
+- `user_statistics` - Credibility score (0-100), mojo (currency), lifetime goals logged
+- `user_goals` - Weekly running goals with progress tracking (current_progress, week_start_date, completion_dates)
+- `daily_photos` - Daily photo uploads (user_id, date, photo_url, uploaded_at)
+
+**Groups:**
+- `groups` - Group metadata (name, join_code, created_by)
+- `group_members` - User-group membership relationships
+- `group_chat_messages` - Real-time group chat messages
+
+**Gamification:**
+- `arena_quests` - Quest interactions between group members (Alliance, Battle, Prophecy, Curse)
+  - Constraints prevent duplicate pending quests of same type between users
+
+**Key Features:**
+- Row Level Security (RLS) enabled on all tables for data protection
+- Automatic profile creation on signup via database trigger
+- Database function `log_goal_completion()` atomically updates goals and statistics
+- Unique constraints prevent duplicate daily photos and quest requests
+
+**Storage Buckets:**
+- `daily-photos` - Public bucket for daily photo uploads (5MB limit, JPEG/PNG/WebP MIME types)
+- Created via migration: `20251028234147_add_daily_photos_storage_bucket.sql`
+- Uses `INSERT INTO storage.buckets` with conflict handling
 
 **Development**: Email confirmation disabled in local Supabase
 **Production**: Enable email confirmation and configure SMTP
