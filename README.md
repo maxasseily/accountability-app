@@ -4,15 +4,44 @@ A React Native accountability app built with Expo, TypeScript, and Supabase feat
 
 ## 🚀 Features
 
+### Core Features
 - **Authentication**: Email/password login and signup with Supabase
 - **Daily Photo Upload**: Take and upload daily accountability photos
 - **Groups**: Create or join accountability groups with unique 6-digit codes
-- **Group Members View**: See all members' latest photos with real-time updates
+- **Group Chat**: Real-time messaging within groups
 - **Futuristic UI**: Dark theme with gradients and glassmorphism effects
 - **Secure Storage**: Sessions persist across app restarts
-- **Real-time Updates**: Group member photos refresh automatically when you navigate back
 - **Local Development**: Full Supabase local stack with Docker
 - **TypeScript**: Full type safety throughout
+
+### Goals & Progress
+- **Running Goals**: Set weekly running goals (3x/week currently supported)
+- **Weekly Progress Tracking**: Visual progress dots showing completion status
+- **Auto-Reset**: Progress automatically resets each week
+- **One-Tap Logging**: "Log Run" button to track goal completion
+- **Photo Auto-Logging**: Uploading a photo automatically logs goal completion
+
+### Gamification System
+- **Credibility Score**: 0-100 score tracking how true you are to your word
+- **Mojo Currency**: Earn and spend mojo through quest participation
+- **Status Ladder**: Progress from Noob to Veteran based on credibility
+- **Lifetime Goals**: Track total goals completed across all weeks
+
+### Arena (Quests)
+- **Alliance Quests**: Collaborate with teammates for double rewards
+- **Battle Quests**: Compete head-to-head for mojo boosts
+- **Prophecy Quests**: Predict teammate success for mojo rewards
+- **Curse Quests**: Predict teammate failure for mojo rewards
+- **Request System**: Send and accept quest challenges
+- **Active Tracking**: View all ongoing quests and their status
+
+### Statistics & Analytics
+- **Personal Dashboard**: View your credibility, mojo, and lifetime goals
+- **Credibility Charts**: Line charts tracking credibility over time
+- **Goal Progress Charts**: Bar charts showing weekly/monthly progress
+- **Group Leaderboard**: Compare credibility scores with group members
+- **Time Periods**: View stats by week, month, or 6 months
+- **Status Badges**: Visual indicators of your current rank
 
 ## 📋 What You'll Need
 
@@ -339,16 +368,30 @@ You'll see a QR code in the terminal. You have three options:
 2. Open it again
 3. You should **still be logged in** - no need to sign in again!
 
-### Test Photo Upload
+### Test Goal Setup (First-Time Onboarding)
 
-1. Navigate to the **"Post Photo"** tab (camera icon)
-2. Tap the photo frame
-3. Grant camera/photo permissions when prompted
-4. Select a photo from your gallery
-5. The photo should upload and display in the frame
-6. Try uploading again - it will replace today's photo
+1. After signing up, you'll see the **Credibility & Mojo Intro** screen
+2. Read about how the gamification system works
+3. Tap **"Next"** to learn about **Quest Types**
+4. Review the four quest types (Alliance, Battle, Prophecy, Curse)
+5. Tap **"Get Started"** to choose your goal
+6. Select **"Running"** (currently the only available goal type)
+7. Choose **"3 times per week"** frequency
+8. Confirm your goal on the confirmation screen
+9. You're all set! You'll see your home screen with progress dots
 
-### Test Groups
+### Test Photo Upload & Goal Logging
+
+1. From the home screen, tap **"Log Run"**
+2. You'll see a green checkmark appear on today's progress dot
+3. Your credibility score increases by 1 point
+4. Alternatively, tap the photo frame to upload a photo
+5. Grant camera/photo permissions when prompted
+6. Select a photo from your gallery
+7. The photo uploads AND automatically logs your goal for the day
+8. Try uploading again - it will replace today's photo (but won't log twice)
+
+### Test Groups & Chat
 
 **Create a Group:**
 1. Navigate to the **"Groups"** tab (people icon)
@@ -363,10 +406,39 @@ You'll see a QR code in the terminal. You have three options:
 3. Enter a 6-digit code from someone who created a group
 4. You'll see all group members and their latest photos
 
-**Test Real-time Updates:**
-1. Upload a photo (Post Photo tab)
-2. Navigate back to the Groups tab
-3. Your new photo should appear automatically - no app reload needed!
+**Group Chat:**
+1. In the Groups tab, tap the **chat icon** at the top-right
+2. Send messages to your group members
+3. Messages appear in real-time for all group members
+
+### Test Arena (Quests)
+
+1. Navigate to the **"Arena"** tab (shield icon)
+2. **Note**: You must be in a group to access Arena features
+3. View all group members with their credibility scores
+4. Tap a member's card to see quest options
+5. Choose a quest type (Alliance, Battle, Prophecy, or Curse)
+6. Send the quest request
+7. Wait for the member to accept (or have them accept your request)
+8. View active quests in the **"Quests"** section
+9. Check pending requests in the **"Requests"** section
+
+### Test Statistics
+
+1. Navigate to the **"Statistics"** tab (chart icon)
+2. View your personal stats:
+   - Current credibility score (large display)
+   - Lifetime goals logged
+   - Mojo total
+   - Status badge (Noob, Beginner, etc.)
+3. Tap the credibility score to see an explanation modal
+4. Tap the status badge to see the full status ladder
+5. Toggle to **"Group"** view to see:
+   - Group leaderboard sorted by credibility
+   - Group average credibility
+   - Your rank highlighted in the list
+6. Change time periods (Week, Month, 6 Months) to see different data ranges
+7. View credibility line charts and goal progress bar charts
 
 ---
 
@@ -381,35 +453,64 @@ accountability-app/
 │   │   ├── login.tsx           # 👈 Login screen
 │   │   ├── signup.tsx          # 👈 Signup screen
 │   │   └── reset-password.tsx  # 👈 Password reset
+│   ├── (onboarding)/            # First-time user onboarding flow
+│   │   ├── credibility-mojo-intro.tsx    # 👈 Explain credibility & mojo
+│   │   ├── quest-types-intro.tsx         # 👈 Explain quest types
+│   │   ├── goal-selection.tsx            # 👈 Choose goal type
+│   │   ├── frequency-selection.tsx       # 👈 Choose frequency
+│   │   └── goal-confirmation.tsx         # 👈 Confirm goal setup
 │   └── (app)/                   # Protected app route group (requires authentication)
-│       ├── home.tsx            # 👈 Home screen
-│       ├── post-photo.tsx      # 👈 Daily photo upload screen
-│       ├── statistics.tsx      # 👈 User statistics screen
+│       ├── home.tsx            # 👈 Home screen with photo upload & goal progress
+│       ├── arena.tsx           # 👈 Quests and gamification screen
+│       ├── statistics.tsx      # 👈 Personal stats & group leaderboard
 │       └── groups/             # Group management screens
 │           ├── index.tsx       # 👈 Groups overview (view members)
 │           ├── create.tsx      # 👈 Create new group
-│           └── join.tsx        # 👈 Join existing group
+│           ├── join.tsx        # 👈 Join existing group
+│           └── chat.tsx        # 👈 Group chat screen
 │
 ├── src/
 │   ├── components/              # Reusable UI pieces
 │   │   ├── ui/                  # Buttons, inputs, backgrounds
+│   │   │   ├── Button.tsx      # Gradient button with variants
+│   │   │   ├── Input.tsx       # Glassmorphic input
+│   │   │   └── GradientBackground.tsx
 │   │   ├── auth/                # Auth-specific components
-│   │   └── groups/              # Group-specific components
-│   │       ├── GroupCard.tsx   # 👈 Group info display
-│   │       ├── MemberList.tsx  # 👈 List of group members with photos
-│   │       └── NoGroupState.tsx # 👈 Empty state UI
+│   │   ├── groups/              # Group-specific components
+│   │   │   ├── GroupHeader.tsx
+│   │   │   ├── MemberList.tsx
+│   │   │   └── NoGroupState.tsx
+│   │   ├── chat/                # Chat components
+│   │   │   ├── MessageBubble.tsx
+│   │   │   ├── MessageInput.tsx
+│   │   │   └── MessageList.tsx
+│   │   ├── arena/               # Arena/quest components
+│   │   │   ├── ArenaMemberList.tsx
+│   │   │   ├── QuestsSection.tsx
+│   │   │   └── RequestsSection.tsx
+│   │   └── navigation/
+│   │       └── SwipeablePages.tsx
 │   ├── context/
 │   │   ├── AuthContext.tsx     # 👈 Handles login/logout logic
-│   │   └── GroupContext.tsx    # 👈 Manages group state
+│   │   ├── GroupContext.tsx    # 👈 Manages group state
+│   │   └── GoalContext.tsx     # 👈 Manages goal state & progress
 │   ├── lib/
-│   │   └── supabase.ts         # 👈 Database connection
+│   │   ├── supabase.ts         # 👈 Database connection
+│   │   ├── goals.ts            # 👈 Goal database operations
+│   │   ├── groups.ts           # 👈 Group database operations
+│   │   └── statistics.ts       # 👈 Statistics queries
 │   ├── types/
-│   │   └── groups.ts           # 👈 TypeScript types for groups
+│   │   ├── groups.ts           # 👈 TypeScript types for groups
+│   │   ├── goals.ts            # 👈 TypeScript types for goals
+│   │   ├── statistics.ts       # 👈 TypeScript types for stats
+│   │   └── arena.ts            # 👈 TypeScript types for quests
 │   └── utils/
 │       ├── colors.ts           # 👈 All the theme colors
+│       ├── spacing.ts          # 👈 Spacing constants
 │       ├── validation.ts       # 👈 Form validation (email, password)
 │       ├── dailyPhoto.ts       # 👈 Photo upload/fetch logic
-│       └── groups.ts           # 👈 Group creation/join logic
+│       ├── groups.ts           # 👈 Group creation/join logic
+│       └── arenaQuests.ts      # 👈 Quest logic
 │
 ├── supabase/                    # Local Supabase development
 │   ├── migrations/              # 👈 Database schema changes (version controlled)
@@ -427,7 +528,10 @@ accountability-app/
 - **Modify login logic?** → Check `src/context/AuthContext.tsx`
 - **Change database schema?** → Create migration in `supabase/migrations/`
 - **Photo upload logic?** → Check `src/utils/dailyPhoto.ts`
-- **Group features?** → Look in `src/utils/groups.ts` and `src/context/GroupContext.tsx`
+- **Group features?** → Look in `src/lib/groups.ts` and `src/context/GroupContext.tsx`
+- **Goal tracking?** → Check `src/lib/goals.ts` and `src/context/GoalContext.tsx`
+- **Quest system?** → Look in `src/utils/arenaQuests.ts`
+- **Statistics?** → Check `src/lib/statistics.ts`
 
 ---
 
@@ -768,19 +872,19 @@ git commit -m "feat: add my feature"
 git push
 ```
 
-### ⚠️ Important: Storage Buckets for Photo Uploads
+### ✅ Storage Buckets for Photo Uploads
 
-When testing photo uploads locally, you must **manually create storage buckets** in Supabase Studio:
+The `daily-photos` storage bucket is **automatically created** by database migration when you run `npx supabase db reset`.
 
-1. Start Supabase: `npx supabase start`
-2. Open Studio: `http://127.0.0.1:54323`
-3. Navigate to **Storage** → **New bucket**
-4. Create bucket named `daily-photos` with:
-   - **Public bucket**: ✅ Enabled
-   - **File size limit**: 5MB
-   - **Allowed MIME types**: `image/*`
+**Bucket Configuration:**
+- **Name**: `daily-photos`
+- **Public bucket**: ✅ Enabled
+- **File size limit**: 5MB
+- **Allowed MIME types**: `image/jpeg`, `image/jpg`, `image/png`, `image/webp`
 
-**Note:** Storage buckets are NOT created by migrations and must be set up manually in each environment (local, staging, production).
+**Migration file**: `supabase/migrations/20251028234147_add_daily_photos_storage_bucket.sql`
+
+**Note:** If you're having issues with photo uploads, verify the bucket exists by opening Supabase Studio (`http://127.0.0.1:54323`) → Storage tab.
 
 **For more technical details**, see [SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)
 
