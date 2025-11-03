@@ -1,18 +1,43 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, ActionSheetIOS, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
+import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
   const { goal, hasGoal, isLoading, getProgress, incrementProgress, canLogToday } = useGoal();
   const [isLoggingRun, setIsLoggingRun] = useState(false);
+  const [todayPhoto, setTodayPhoto] = useState<DailyPhoto | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
+
+  // Load today's photo on mount
+  useEffect(() => {
+    loadTodayPhoto();
+  }, [user]);
+
+  const loadTodayPhoto = async () => {
+    if (!user) {
+      setIsLoadingPhoto(false);
+      return;
+    }
+
+    try {
+      const photo = await getTodayPhoto(user.id);
+      setTodayPhoto(photo);
+    } catch (error) {
+      console.error('Error loading today\'s photo:', error);
+    } finally {
+      setIsLoadingPhoto(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -25,6 +50,105 @@ export default function HomeScreen() {
 
   const handleChangeGoal = () => {
     router.push('/(onboarding)/goal-selection');
+  };
+
+  const showPhotoOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            handleUploadPhoto('camera');
+          } else if (buttonIndex === 2) {
+            handleUploadPhoto('library');
+          }
+        }
+      );
+    } else {
+      // For Android, use Alert
+      Alert.alert(
+        'Upload Photo',
+        'Choose an option',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Take Photo',
+            onPress: () => handleUploadPhoto('camera'),
+          },
+          {
+            text: 'Choose from Library',
+            onPress: () => handleUploadPhoto('library'),
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  const handleUploadPhoto = async (source: 'camera' | 'library') => {
+    if (!user) return;
+
+    try {
+      // Request permissions
+      const hasPermissions = await requestPermissions();
+      if (!hasPermissions) {
+        Alert.alert(
+          'Permissions Required',
+          'Please grant camera and photo library permissions to upload photos.'
+        );
+        return;
+      }
+
+      // Pick or take image based on source
+      const image = source === 'camera'
+        ? await takeDailyPhoto()
+        : await pickDailyPhoto();
+
+      if (!image) return;
+
+      setIsUploading(true);
+
+      // Upload to Supabase
+      const uploadedPhoto = await uploadDailyPhoto(user.id, image.uri);
+
+      // Update the photo state
+      setTodayPhoto({
+        ...uploadedPhoto,
+        uploaded_at: new Date().toISOString(),
+      });
+
+      // Automatically log a run after photo upload
+      if (hasGoal && canLogToday()) {
+        try {
+          await incrementProgress();
+          Alert.alert(
+            'Success!',
+            'Photo uploaded & run logged! Keep up the great work!'
+          );
+        } catch (error) {
+          console.error('Error logging run:', error);
+          // Photo uploaded successfully, but run logging failed
+          Alert.alert(
+            'Photo Uploaded',
+            'Your photo was uploaded, but there was an issue logging your run. You can try logging it manually.'
+          );
+        }
+      } else {
+        // Just show photo uploaded (no goal set or already logged today)
+        Alert.alert('Success!', 'Photo uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleLogRun = async () => {
@@ -84,6 +208,54 @@ export default function HomeScreen() {
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.nameText}>{user?.name}!</Text>
+          </View>
+
+          {/* Daily Photo Upload Section */}
+          <View style={styles.photoCard}>
+            <View style={styles.photoHeader}>
+              <Ionicons name="camera" size={24} color={colors.accent} />
+              <Text style={styles.photoLabel}>Today's Photo</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.imageFrame}
+              onPress={showPhotoOptions}
+              disabled={isUploading || isLoadingPhoto}
+              activeOpacity={0.8}
+            >
+              {isLoadingPhoto ? (
+                <View style={styles.imagePlaceholder}>
+                  <ActivityIndicator size="large" color={colors.accent} />
+                </View>
+              ) : todayPhoto ? (
+                <Image
+                  source={{ uri: `${todayPhoto.photo_url}?t=${todayPhoto.uploaded_at}` }}
+                  style={styles.uploadedImage}
+                  resizeMode="cover"
+                  key={todayPhoto.uploaded_at}
+                />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Text style={styles.placeholderIcon}>📷</Text>
+                  <Text style={styles.placeholderText}>Tap to Upload</Text>
+                  <Text style={styles.placeholderSubtext}>Required for daily accountability</Text>
+                </View>
+              )}
+
+              {isUploading && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator size="large" color={colors.accent} />
+                  <Text style={styles.uploadingText}>Uploading...</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {todayPhoto && (
+              <View style={styles.photoCompleted}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
+                <Text style={styles.photoCompletedText}>Photo uploaded today!</Text>
+              </View>
+            )}
           </View>
 
           {hasGoal && goal && progress ? (
@@ -264,7 +436,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   welcomeSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   welcomeText: {
     fontSize: 20,
@@ -278,6 +450,99 @@ const styles = StyleSheet.create({
     textShadowColor: colors.accentGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
+  },
+  photoCard: {
+    backgroundColor: colors.glassLight,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+    padding: 24,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  photoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  photoLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  imageFrame: {
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glassLight,
+    padding: 4,
+    marginBottom: 12,
+  },
+  imagePlaceholder: {
+    flex: 1,
+    borderRadius: 16,
+    backgroundColor: colors.glassDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+    borderStyle: 'dashed',
+  },
+  placeholderIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  placeholderSubtext: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  uploadedImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadingText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  photoCompleted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: colors.glassDark,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  photoCompletedText: {
+    fontSize: 14,
+    color: colors.accent,
+    fontWeight: '600',
   },
   goalCard: {
     backgroundColor: colors.glassLight,
