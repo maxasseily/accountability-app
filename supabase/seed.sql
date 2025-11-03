@@ -722,3 +722,76 @@ values (
   'pending',
   now() - interval '12 hours'
 ) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+
+-- Update user_statistics with varying mojo amounts (between 5 and 100)
+-- Alice: 95 mojo (high performer)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  85,
+  95,
+  42
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Bob: 55 mojo (moderate performer)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000002'::uuid,
+  65,
+  55,
+  28
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Charlie: 78 mojo (good performer)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000003'::uuid,
+  75,
+  78,
+  35
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Diana: 42 mojo (still building up)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000004'::uuid,
+  60,
+  42,
+  20
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Evan: 12 mojo (new user, struggling)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000005'::uuid,
+  45,
+  12,
+  8
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Fiona: 88 mojo (consistent performer)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000006'::uuid,
+  80,
+  88,
+  38
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
