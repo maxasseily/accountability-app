@@ -129,10 +129,16 @@ export default function HomeScreen() {
       // Automatically log a run after photo upload
       if (hasGoal && canLogToday()) {
         try {
-          await incrementProgress();
+          const result = await incrementProgress();
+
+          // Show mojo gained feedback
+          const mojoMessage = result.weeklyGoalCompleted
+            ? `🎉 Weekly goal completed! +${result.mojoGained} mojo (+5 for logging + 10 bonus!)`
+            : `+${result.mojoGained} mojo earned!`;
+
           Alert.alert(
             'Success!',
-            'Photo uploaded & run logged! Keep up the great work!'
+            `Photo uploaded & run logged!\n\n${mojoMessage}\n\nKeep up the great work!`
           );
         } catch (error) {
           console.error('Error logging run:', error);
@@ -162,8 +168,14 @@ export default function HomeScreen() {
 
     try {
       setIsLoggingRun(true);
-      await incrementProgress();
-      Alert.alert('Success!', 'Run logged successfully! Keep up the great work!');
+      const result = await incrementProgress();
+
+      // Show mojo gained feedback
+      const mojoMessage = result.weeklyGoalCompleted
+        ? `🎉 Weekly goal completed! +${result.mojoGained} mojo (+5 for logging + 10 bonus!)`
+        : `+${result.mojoGained} mojo earned!`;
+
+      Alert.alert('Success!', `Run logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`);
     } catch (error) {
       console.error('Error logging run:', error);
       if (error instanceof Error && error.message === 'Already logged a run today') {
