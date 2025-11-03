@@ -600,6 +600,12 @@ This usually means your phone can't find the development server on your computer
 3. Type: `rebuild container`
 4. Select **"Dev Containers: Rebuild Container"**
 
+**alternative fix:**
+1. Go to Docker > Settings > Resources > File-Sharing
+2. Explicitly add the path to the app directory (it will disappear as likely is under Users)
+3. Try toggling /Users/ file access on and off again
+4. Try rebuilding container
+
 ### App shows "Invalid API key" or login doesn't work
 
 **Fix:**
@@ -614,6 +620,7 @@ This usually means your phone can't find the development server on your computer
 2. Type: `rebuild container`
 3. Select **"Dev Containers: Rebuild Container"**
 4. Wait for it to finish (2-5 minutes)
+
 
 ### Still stuck?
 
