@@ -84,7 +84,8 @@ export default function CredibilityMojoIntroScreen() {
 
           <Text style={styles.metricDescription}>
             Mojo is your credibility currency! You will gain mojo by working
-            towards your goals!
+            towards your goals! Even though one has to earn mojo, we thought we'd
+            start you off with a little to get going 😉
           </Text>
 
           <View style={styles.benefitsContainer}>
