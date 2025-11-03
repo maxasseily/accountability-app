@@ -4,6 +4,8 @@
 
 import { supabase } from './supabase';
 import type { UserGoal, GoalType, GoalFrequency } from '../types/goals';
+import type { GoalCompletionResult } from '../types/statistics';
+import { mapRowToUserStatistics } from './statistics';
 
 // Helper to get the start of the current week (Monday)
 function getWeekStartDate(): string {
@@ -14,12 +16,6 @@ function getWeekStartDate(): string {
   monday.setDate(now.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
   return monday.toISOString();
-}
-
-// Get today's date in YYYY-MM-DD format
-function getTodayDateString(): string {
-  const now = new Date();
-  return now.toISOString().split('T')[0];
 }
 
 // Convert database row to UserGoal
@@ -121,55 +117,23 @@ export async function updateGoal(
 /**
  * Increment goal progress (log a completion)
  */
-export async function incrementGoalProgress(userId: string): Promise<UserGoal> {
-  const today = getTodayDateString();
-
-  // Get current goal
-  const goal = await getUserGoalFromDb(userId);
-  if (!goal) {
-    throw new Error('No goal set');
-  }
-
-  // Check if already logged today
-  if (goal.lastCompletionDate === today) {
-    throw new Error('Already logged a run today');
-  }
-
-  // Check if we need to reset for a new week
-  const currentWeekStart = getWeekStartDate();
-  const needsReset = new Date(currentWeekStart) > new Date(goal.weekStartDate);
-
-  let newProgress: number;
-  let newCompletionDates: string[];
-
-  if (needsReset) {
-    // Reset for new week
-    newProgress = 1;
-    newCompletionDates = [today];
-  } else {
-    // Add to current week
-    newProgress = Math.min(goal.currentProgress + 1, goal.frequency);
-    newCompletionDates = [...goal.completionDates, today];
-  }
-
-  const { data, error } = await supabase
-    .from('user_goals')
-    .update({
-      current_progress: newProgress,
-      week_start_date: needsReset ? currentWeekStart : goal.weekStartDate,
-      last_completion_date: today,
-      completion_dates: newCompletionDates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .select()
-    .single();
+export async function incrementGoalProgress(userId: string): Promise<GoalCompletionResult> {
+  const { data, error } = await supabase.rpc('log_goal_completion', {
+    user_uuid: userId,
+  });
 
   if (error) {
     throw error;
   }
 
-  return mapDbToUserGoal(data);
+  if (!data?.goal || !data?.statistics) {
+    throw new Error('Unexpected response from log_goal_completion');
+  }
+
+  return {
+    goal: mapDbToUserGoal(data.goal),
+    statistics: mapRowToUserStatistics(data.statistics),
+  };
 }
 
 /**
