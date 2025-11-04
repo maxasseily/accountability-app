@@ -897,6 +897,109 @@ The `daily-photos` storage bucket is **automatically created** by database migra
 
 ---
 
+## 📦 EAS Test Builds
+
+Follow the steps below if you have never used Expo or EAS before:
+
+1. **Create an Expo account**
+   - Visit [https://expo.dev/signup](https://expo.dev/signup) and register with your work email.
+   - Confirm the account by clicking the email verification link before continuing.
+   - The shared Expo project lives under the owner `parthagarwal00`. Ask that account owner to add your Expo username as a collaborator (or provide build credentials) before you attempt to link the project.
+2. **Install the Expo & EAS tooling**
+   - Run `npm install --global eas-cli expo-cli` or use `npx eas`/`npx expo` if you prefer not to install globally.
+   - Verify the install with `eas --version`.
+3. **Log in from the project directory**
+   - From `/workspaces/accountability-app` run `eas login`.
+   - When prompted, enter the email/password you just created (or choose the magic-link option).
+4. **Link this repository to the Expo project**
+   - Run `npx eas init`.
+   - Choose **"Link an existing project"** if one already exists in your Expo account, otherwise create a new project using the default slug `accountability-app`.
+   - The project ID `15d9d37c-3cf3-44ed-a1ab-9f07cd496f47` is already baked into `app.config.ts`, so no manual edits are required. If you ever migrate to a different Expo project, override it with `export EAS_PROJECT_ID=<new-uuid>` (or add that variable to your shell profile/CI secrets).
+5. **Add the production Supabase anon key to EAS**
+   - Run `eas secret:create --scope project --name SUPABASE_ANON_KEY --value <production-anon-key>`.
+   - This secret is consumed by the `preview` and `production` profiles in `eas.json`, so all cloud builds automatically point to the live database.
+6. **(Optional) Add more environment overrides**
+   - If you need to customize bundle IDs or version codes, set `IOS_BUNDLE_ID`, `ANDROID_PACKAGE`, or other values as additional EAS secrets. The dynamic config in `app.config.ts` reads them at build time.
+7. **Build for testing**
+   - iOS (TestFlight, no device registration): `eas build --profile testflight --platform ios`
+   - iOS (Internal/Ad Hoc, requires device UDIDs): `eas build --profile preview --platform ios`
+   - Android (Internal): `eas build --profile preview --platform android`
+   - Before every iOS submission, bump `IOS_BUILD_NUMBER` to a higher integer (or timestamp) so App Store Connect accepts the new binary. If you want to publish a new app store version, also set `APP_VERSION` (e.g., `APP_VERSION=1.0.1`).
+   - Run `npx expo config --json | jq '.ios.buildNumber,.version,.extra.backend'` to confirm the build will embed the expected version, build number, and production Supabase URL before triggering EAS.
+   - On first run, EAS may prompt you to install and configure `expo-updates`. You can answer "yes" — the project already sets `updates.url` dynamically and adds the required iOS encryption flag in `app.config.ts`.
+   - TestFlight builds are not public on the App Store; you must explicitly submit for App Review to publish.
+   - **Prod safety check**: `scripts/verify-supabase-env.mjs` runs automatically during the EAS build (pre-install hook) and aborts if `EXPO_PUBLIC_SUPABASE_URL` points to a local address or the Supabase anon key is missing/invalid.
+
+### Updating TestFlight After Merges (Manual)
+
+Two options to get changes to testers after you merge to `main`:
+
+- OTA update (no new binary) — for JS-only changes
+  - One-time: create the channel and branch
+    - `eas channel:create testflight --branch testflight`
+  - Ship an update
+    - `eas update --branch testflight --message "Fix: <describe change>"`
+  - Result: App pulls the update on next launch; the TestFlight build number stays the same (works across all builds on SDK 54 using channel `testflight`).
+
+- New TestFlight build (binary)
+  - Build and submit in one step
+    - Bump the iOS build number (must be higher than the last upload):
+      - macOS/Linux: `IOS_BUILD_NUMBER=$(date +%Y%m%d%H%M) eas build --profile testflight --platform ios --auto-submit`
+      - Windows (PowerShell): `$env:IOS_BUILD_NUMBER=(Get-Date -Format yyyyMMddHHmm); eas build --profile testflight --platform ios --auto-submit`
+    - To ship a new App Store version at the same time, also pass `APP_VERSION` (e.g. `APP_VERSION=1.0.1 IOS_BUILD_NUMBER=202511041200 ...`).
+  - Use this when: native dependency changes, permissions/Info.plist changes, icons/splash, or anytime you want a new build number.
+
+---
+
+### Do Testers Need Expo Accounts?
+
+- Short answer: No. Testers do not need Expo accounts to install and run preview builds you share with them.
+- Who needs an Expo account: Only the people who trigger EAS builds or access the Expo dashboard (you/maintainers).
+
+Platform specifics
+- Android
+  - Share the APK link from EAS or upload to Play Internal Testing.
+  - No Expo account is required. If using Play Internal Testing, testers must be added as testers in the Play Console (Google account required by Google, not Expo).
+- iOS
+  - Recommended: TestFlight. Invite testers via App Store Connect (Apple IDs required by Apple, not Expo).
+  - Alternative: Internal (Ad Hoc) distribution. Each tester’s device UDID must be registered in your Apple Developer account; installation works via a link. No Expo account is required.
+
+Note: Accessing the Expo build page itself may require sign‑in, but the direct install links and distribution methods above do not require testers to create Expo accounts.
+
+### Choosing iOS Distribution
+
+- `testflight` profile (recommended):
+  - Uses `distribution: "store"` so no device registration is required.
+  - Command: `eas build --profile testflight --platform ios`
+  - Submit the latest build to TestFlight: `eas submit -p ios --latest`
+  - Invite testers in App Store Connect; app is not public unless you submit for App Store release.
+- `preview` profile (Ad Hoc/internal):
+  - Uses `distribution: "internal"` and requires registering tester device UDIDs.
+  - Useful if you can’t use TestFlight, but has a 100‑device limit per membership year.
+
+## 🧪 Access via TestFlight (iOS)
+
+- Prerequisites
+  - Build submitted to TestFlight (`eas build --profile testflight --platform ios --auto-submit` or submit the latest build with `eas submit -p ios --latest`).
+  - You (maintainer) have App Store Connect access for the app under the owner account.
+  - Testers must install Apple’s TestFlight app and sign in with their Apple ID.
+- Invite internal testers (team members)
+  - App Store Connect → Users and Access → add users to your team (if not already).
+  - My Apps → [Your App] → TestFlight → Internal Testing → add testers to a group. Builds are available to internal testers quickly (no beta review required).
+- Invite external testers (non-team users)
+  - My Apps → [Your App] → TestFlight → New Group → add testers by email, or enable a Public Link.
+  - The first build requires Apple’s beta app review for external testing. After approval, new builds generally become available faster.
+- Share a Public Link (recommended for external testing)
+  - My Apps → [Your App] → TestFlight → select your external tester group → Enable Public Link → copy the link and share it.
+  - Optionally set a tester limit and require approval for each join.
+- Tester steps
+  - Install the TestFlight app from the App Store.
+  - Open the invite link or accept the email invite → tap “Accept” → “Install”.
+  - Updates arrive via TestFlight when a new build is submitted; builds expire after 90 days.
+- Where to get the invite/link (maintainers)
+  - App Store Connect → My Apps → [Your App] → TestFlight → Groups → Public Link (copy) or add testers by email.
+  - Build notes and “What to Test” can be edited per build in the same TestFlight area.
+
 ## 📚 Advanced Topics
 
 Want to dig deeper? Check these guides:
