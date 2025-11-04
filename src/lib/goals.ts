@@ -135,6 +135,7 @@ export async function incrementGoalProgress(userId: string): Promise<GoalComplet
     statistics: mapRowToUserStatistics(data.statistics),
     mojoGained: data.mojo_gained,
     weeklyGoalCompleted: data.weekly_goal_completed,
+    hasAllianceBonus: data.has_alliance_bonus,
   };
 }
 
