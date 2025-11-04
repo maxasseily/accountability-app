@@ -14,4 +14,17 @@ export interface GoalCompletionResult {
   statistics: UserStatistics;
   mojoGained?: number;
   weeklyGoalCompleted?: boolean;
+  hasAllianceBonus?: boolean;
+}
+
+export interface UserNotification {
+  id: string;
+  userId: string;
+  notificationType: 'alliance_success' | 'alliance_failure';
+  title: string;
+  message: string;
+  mojoChange: number;
+  questId: string | null;
+  isRead: boolean;
+  createdAt: string;
 }

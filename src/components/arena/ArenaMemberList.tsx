@@ -35,7 +35,8 @@ interface ArenaAction {
   icon: string;
   description: string;
   color: string;
-  confirmMessage: string;
+  confirmTitle: string;
+  confirmDescription?: string;
 }
 
 const ARENA_ACTIONS: ArenaAction[] = [
@@ -45,7 +46,8 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '🤝',
     description: 'Form an alliance for mutual support',
     color: 'rgba(59, 130, 246, 0.15)', // Deep blue tinge (reduced for gradient overlay)
-    confirmMessage: 'Send an alliance request?'
+    confirmTitle: 'Send an alliance request?',
+    confirmDescription: 'If you and your alliance mate both honour your goals for the week, you will both receive a mojo bonus! However, don\'t let each other down, or you will shame the alliance and lose mojo instead!'
   },
   {
     id: 'battle',
@@ -53,7 +55,7 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '⚔️',
     description: 'Challenge them to a friendly competition',
     color: 'rgba(220, 38, 38, 0.15)', // Deep red tinge
-    confirmMessage: 'Send a battle challenge?'
+    confirmTitle: 'Send a battle challenge?'
   },
   {
     id: 'prophecy',
@@ -61,7 +63,7 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '🔮',
     description: 'Make a prediction about their progress',
     color: 'rgba(147, 51, 234, 0.15)', // Deep purple tinge
-    confirmMessage: 'Send a prophecy request?'
+    confirmTitle: 'Send a prophecy request?'
   },
   {
     id: 'curse',
@@ -69,7 +71,7 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '💀',
     description: 'Cast a playful curse',
     color: 'rgba(236, 72, 153, 0.15)', // Electric pink tinge
-    confirmMessage: 'Send a curse request?'
+    confirmTitle: 'Send a curse request?'
   },
 ];
 
@@ -386,7 +388,10 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                 {selectedAction && (
                   <>
                     <Text style={styles.confirmIcon}>{selectedAction.icon}</Text>
-                    <Text style={styles.confirmTitle}>{selectedAction.confirmMessage}</Text>
+                    <Text style={styles.confirmTitle}>{selectedAction.confirmTitle}</Text>
+                    {selectedAction.confirmDescription && (
+                      <Text style={styles.confirmDescription}>{selectedAction.confirmDescription}</Text>
+                    )}
                     <Text style={styles.confirmSubtitle}>
                       {selectedAction.label} with {pendingMemberName}
                     </Text>
@@ -717,6 +722,14 @@ const styles = StyleSheet.create({
     textShadowColor: colors.accentGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
+  },
+  confirmDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingMedium,
+    lineHeight: 20,
+    paddingHorizontal: spacing.paddingXs,
   },
   confirmSubtitle: {
     fontSize: 14,

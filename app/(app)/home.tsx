@@ -11,6 +11,7 @@ import { useGoal } from '../../src/context/GoalContext';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
+import { getUnreadNotifications, markNotificationAsRead } from '../../src/lib/notifications';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -25,6 +26,57 @@ export default function HomeScreen() {
   useEffect(() => {
     loadTodayPhoto();
   }, [user]);
+
+  // Check for unread notifications on mount
+  useEffect(() => {
+    checkForNotifications();
+  }, [user]);
+
+  const checkForNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const notifications = await getUnreadNotifications(user.id);
+
+      // Show notifications one by one
+      if (notifications.length > 0) {
+        showNotifications(notifications, 0);
+      }
+    } catch (error) {
+      console.error('Error checking notifications:', error);
+    }
+  };
+
+  const showNotifications = async (notifications: any[], index: number) => {
+    if (index >= notifications.length) return;
+
+    const notification = notifications[index];
+
+    Alert.alert(
+      notification.title,
+      notification.message,
+      [
+        {
+          text: 'OK',
+          onPress: async () => {
+            // Mark as read
+            try {
+              await markNotificationAsRead(notification.id);
+            } catch (error) {
+              console.error('Error marking notification as read:', error);
+            }
+
+            // Show next notification after a delay
+            if (index + 1 < notifications.length) {
+              setTimeout(() => {
+                showNotifications(notifications, index + 1);
+              }, 300);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const loadTodayPhoto = async () => {
     if (!user) {
@@ -136,9 +188,39 @@ export default function HomeScreen() {
             ? `🎉 Weekly goal completed! +${result.mojoGained} mojo (+5 for logging + 10 bonus!)`
             : `+${result.mojoGained} mojo earned!`;
 
+          // Show main success alert
           Alert.alert(
             'Success!',
-            `Photo uploaded & run logged!\n\n${mojoMessage}\n\nKeep up the great work!`
+            `Photo uploaded & run logged!\n\n${mojoMessage}\n\nKeep up the great work!`,
+            [{ text: 'OK', onPress: async () => {
+              // Check for alliance bonus after main alert is dismissed
+              if (result.hasAllianceBonus && user) {
+                // Fetch the alliance notification that was just created
+                try {
+                  const notifications = await getUnreadNotifications(user.id);
+                  const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
+
+                  if (allianceNotification) {
+                    setTimeout(() => {
+                      Alert.alert(
+                        allianceNotification.title,
+                        allianceNotification.message,
+                        [{ text: 'Amazing!', onPress: async () => {
+                          // Mark as read
+                          try {
+                            await markNotificationAsRead(allianceNotification.id);
+                          } catch (error) {
+                            console.error('Error marking notification as read:', error);
+                          }
+                        }}]
+                      );
+                    }, 300);
+                  }
+                } catch (error) {
+                  console.error('Error fetching alliance notification:', error);
+                }
+              }
+            }}]
           );
         } catch (error) {
           console.error('Error logging run:', error);
@@ -175,7 +257,40 @@ export default function HomeScreen() {
         ? `🎉 Weekly goal completed! +${result.mojoGained} mojo (+5 for logging + 10 bonus!)`
         : `+${result.mojoGained} mojo earned!`;
 
-      Alert.alert('Success!', `Run logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`);
+      // Show main success alert
+      Alert.alert(
+        'Success!',
+        `Run logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`,
+        [{ text: 'OK', onPress: async () => {
+          // Check for alliance bonus after main alert is dismissed
+          if (result.hasAllianceBonus && user) {
+            // Fetch the alliance notification that was just created
+            try {
+              const notifications = await getUnreadNotifications(user.id);
+              const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
+
+              if (allianceNotification) {
+                setTimeout(() => {
+                  Alert.alert(
+                    allianceNotification.title,
+                    allianceNotification.message,
+                    [{ text: 'Amazing!', onPress: async () => {
+                      // Mark as read
+                      try {
+                        await markNotificationAsRead(allianceNotification.id);
+                      } catch (error) {
+                        console.error('Error marking notification as read:', error);
+                      }
+                    }}]
+                  );
+                }, 300);
+              }
+            } catch (error) {
+              console.error('Error fetching alliance notification:', error);
+            }
+          }
+        }}]
+      );
     } catch (error) {
       console.error('Error logging run:', error);
       if (error instanceof Error && error.message === 'Already logged a run today') {

@@ -16,7 +16,7 @@ interface GoalContextType {
   hasGoal: boolean;
   setGoal: (goalType: GoalType, frequency: GoalFrequency) => Promise<void>;
   updateGoal: (goalType: GoalType, frequency: GoalFrequency) => Promise<void>;
-  incrementProgress: () => Promise<{ mojoGained?: number; weeklyGoalCompleted?: boolean }>;
+  incrementProgress: () => Promise<{ mojoGained?: number; weeklyGoalCompleted?: boolean; hasAllianceBonus?: boolean }>;
   getProgress: () => GoalProgress | null;
   resetWeeklyProgress: () => Promise<void>;
   getUserGoal: (userId: string) => Promise<UserGoal | null>;
@@ -115,7 +115,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Increment progress (e.g., when user completes a run)
-  const incrementProgress = async (): Promise<{ mojoGained?: number; weeklyGoalCompleted?: boolean }> => {
+  const incrementProgress = async (): Promise<{ mojoGained?: number; weeklyGoalCompleted?: boolean; hasAllianceBonus?: boolean }> => {
     if (!user) {
       throw new Error('Not authenticated');
     }
@@ -130,6 +130,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       return {
         mojoGained: result.mojoGained,
         weeklyGoalCompleted: result.weeklyGoalCompleted,
+        hasAllianceBonus: result.hasAllianceBonus,
       };
     } catch (error) {
       console.error('Error incrementing progress:', error);
