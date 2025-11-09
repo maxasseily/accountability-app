@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable, TextInput } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
@@ -9,9 +9,11 @@ import type { GroupMemberWithProfile } from '../../types/groups';
 import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 import { useGoal } from '../../context/GoalContext';
 import type { UserGoal } from '../../types/goals';
-import type { QuestType } from '../../types/arena';
-import { sendArenaQuestRequest } from '../../utils/arenaQuests';
+import type { QuestType, ArenaQuest } from '../../types/arena';
+import { sendArenaQuestRequest, calculateOdds, calculatePotentialPayout, checkExistingQuest, getPendingMojoStakes } from '../../utils/arenaQuests';
 import { useGroup } from '../../context/GroupContext';
+import { getOrCreateUserStatistics, getUserStatistics } from '../../lib/statistics';
+import { useAuth } from '../../context/AuthContext';
 
 interface ArenaMemberListProps {
   members: GroupMemberWithProfile[];
@@ -188,11 +190,22 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, onMemberPress, refres
 
 export default function ArenaMemberList({ members, currentUserId, refreshToken, onRefresh, isRefreshing }: ArenaMemberListProps) {
   const { group } = useGroup();
+  const { user } = useAuth();
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: DailyPhoto; name: string } | null>(null);
   const [selectedMember, setSelectedMember] = useState<GroupMemberWithProfile | null>(null);
   const [selectedAction, setSelectedAction] = useState<ArenaAction | null>(null);
   const [pendingQuestMember, setPendingQuestMember] = useState<GroupMemberWithProfile | null>(null);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
+
+  // Mojo stake state
+  const [mojoStake, setMojoStake] = useState<string>('');
+  const [userMojo, setUserMojo] = useState<number>(0);
+  const [pendingMojoStakes, setPendingMojoStakes] = useState<number>(0);
+  const [memberCredibility, setMemberCredibility] = useState<number>(50);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Existing quest tracking
+  const [existingQuests, setExistingQuests] = useState<Map<string, ArenaQuest>>(new Map());
 
   const handlePhotoPress = (photo: DailyPhoto, memberName: string) => {
     setSelectedPhoto({ photo, name: memberName });
@@ -210,17 +223,74 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
     setSelectedMember(null);
   };
 
-  const handleActionPress = (action: ArenaAction) => {
+  const handleActionPress = async (action: ArenaAction) => {
+    if (!selectedMember || !user || !group) return;
+
+    // Capture member reference before nulling it
+    const member = selectedMember;
+
+    // Check if an identical quest already exists
+    const existingQuest = await checkExistingQuest(
+      group.id,
+      user.id,
+      member.user_id,
+      action.id
+    );
+
+    // Update existing quests map
+    const questKey = `${member.user_id}-${action.id}`;
+    const newMap = new Map(existingQuests);
+    if (existingQuest) {
+      newMap.set(questKey, existingQuest);
+    } else {
+      newMap.delete(questKey); // Clear any old entry
+    }
+    setExistingQuests(newMap);
+
     // Store the member for the quest request
-    setPendingQuestMember(selectedMember);
+    setPendingQuestMember(member);
     setSelectedAction(action);
-    // Close the arena modal so confirmation modal appears on top
+
+    // Close the arena modal immediately so confirmation modal appears on top
     setSelectedMember(null);
+
+    // For prophecy/curse, fetch statistics after closing modal
+    if (action.id === 'prophecy' || action.id === 'curse') {
+      setIsLoadingStats(true);
+      try {
+        // Fetch user's mojo (create if doesn't exist)
+        const userStats = await getOrCreateUserStatistics(user.id);
+        setUserMojo(userStats.mojo);
+
+        // Fetch pending mojo stakes (mojo already committed to pending quests)
+        const pendingStakes = await getPendingMojoStakes(user.id);
+        setPendingMojoStakes(pendingStakes);
+
+        // Fetch member's credibility (read-only, don't create)
+        const memberStats = await getUserStatistics(member.user_id);
+        setMemberCredibility(memberStats?.credibility ?? 50);
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+        // Set defaults on error
+        setMemberCredibility(50);
+        setPendingMojoStakes(0);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    }
   };
 
   const handleCloseConfirmModal = () => {
     setSelectedAction(null);
     setPendingQuestMember(null);
+    setMojoStake('');
+    // Clear existing quest info when closing
+    if (pendingQuestMember && selectedAction) {
+      const questKey = `${pendingQuestMember.user_id}-${selectedAction.id}`;
+      const newMap = new Map(existingQuests);
+      newMap.delete(questKey);
+      setExistingQuests(newMap);
+    }
   };
 
   const handleConfirmAction = async () => {
@@ -229,16 +299,23 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
     try {
       setIsSendingRequest(true);
 
+      // Parse mojo stake for prophecy/curse (whole numbers only)
+      const stake = (selectedAction.id === 'prophecy' || selectedAction.id === 'curse')
+        ? parseInt(mojoStake) || 0
+        : 0;
+
       // Send the quest request
       await sendArenaQuestRequest(
         group.id,
         pendingQuestMember.user_id,
-        selectedAction.id
+        selectedAction.id,
+        stake
       );
 
       // Close confirmation modal and clear pending member
       setSelectedAction(null);
       setPendingQuestMember(null);
+      setMojoStake('');
 
       // Refresh the list
       onRefresh();
@@ -252,6 +329,18 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
 
   const memberName = selectedMember?.profile.full_name || selectedMember?.profile.email.split('@')[0] || 'User';
   const pendingMemberName = pendingQuestMember?.profile.full_name || pendingQuestMember?.profile.email.split('@')[0] || 'User';
+
+  // Calculate odds and payout for prophecy/curse (must be before existingQuest check)
+  const isProphecyOrCurse = selectedAction && (selectedAction.id === 'prophecy' || selectedAction.id === 'curse');
+  const stake = parseInt(mojoStake) || 0;
+  const odds = isProphecyOrCurse ? calculateOdds(selectedAction.id, memberCredibility) : 0;
+  const potentialPayout = isProphecyOrCurse ? Math.round(calculatePotentialPayout(stake, odds)) : 0;
+  const availableMojo = userMojo - pendingMojoStakes;
+  const isValidStake = stake > 0 && stake <= availableMojo;
+
+  // Check if there's an existing quest
+  const questKey = pendingQuestMember && selectedAction ? `${pendingQuestMember.user_id}-${selectedAction.id}` : null;
+  const existingQuest = questKey ? existingQuests.get(questKey) : undefined;
 
   return (
     <View style={styles.container}>
@@ -396,6 +485,78 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                       {selectedAction.label} with {pendingMemberName}
                     </Text>
 
+                    {/* Existing Quest Warning */}
+                    {existingQuest && (
+                      <View style={styles.warningContainer}>
+                        <Ionicons name="information-circle" size={24} color="#f59e0b" />
+                        <Text style={styles.warningText}>
+                          You already have {existingQuest.status === 'pending' ? 'a pending' : 'an accepted'}{' '}
+                          {selectedAction.label.toLowerCase()} with {pendingMemberName}.
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Mojo Stake Input for Prophecy/Curse */}
+                    {isProphecyOrCurse && !existingQuest && (
+                      <View style={styles.mojoStakeContainer}>
+                        {isLoadingStats ? (
+                          <ActivityIndicator size="small" color={colors.accent} />
+                        ) : (
+                          <>
+                            <Text style={styles.mojoStakeLabel}>
+                              Available Mojo: {Math.floor(availableMojo)}
+                              {pendingMojoStakes > 0 && (
+                                <Text style={styles.pendingStakesText}> ({Math.floor(pendingMojoStakes)} staked)</Text>
+                              )}
+                            </Text>
+                            <Text style={styles.credibilityLabel}>
+                              {pendingMemberName}'s Credibility: {memberCredibility}
+                            </Text>
+
+                            <View style={styles.inputContainer}>
+                              <Text style={styles.inputLabel}>Mojo Stake</Text>
+                              <TextInput
+                                style={styles.mojoInput}
+                                value={mojoStake}
+                                onChangeText={setMojoStake}
+                                placeholder="0"
+                                placeholderTextColor={colors.textSecondary}
+                                keyboardType="number-pad"
+                                maxLength={10}
+                              />
+                            </View>
+
+                            {stake > 0 && (
+                              <View style={styles.bettingInfo}>
+                                <View style={styles.bettingRow}>
+                                  <Text style={styles.bettingLabel}>Odds:</Text>
+                                  <Text style={styles.bettingValue}>{odds.toFixed(2)}x</Text>
+                                </View>
+                                <View style={styles.bettingRow}>
+                                  <Text style={styles.bettingLabel}>Potential Win:</Text>
+                                  <Text style={[styles.bettingValue, styles.winValue]}>
+                                    +{potentialPayout} mojo
+                                  </Text>
+                                </View>
+                                <View style={styles.bettingRow}>
+                                  <Text style={styles.bettingLabel}>Potential Loss:</Text>
+                                  <Text style={[styles.bettingValue, styles.lossValue]}>
+                                    -{stake} mojo
+                                  </Text>
+                                </View>
+                              </View>
+                            )}
+
+                            {stake > availableMojo && (
+                              <Text style={styles.errorText}>
+                                Insufficient mojo! (Available: {Math.floor(availableMojo)})
+                              </Text>
+                            )}
+                          </>
+                        )}
+                      </View>
+                    )}
+
                     <View style={styles.confirmButtons}>
                       <TouchableOpacity
                         style={[styles.confirmButton, styles.cancelButton]}
@@ -405,10 +566,18 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                         <Text style={styles.cancelButtonText}>Cancel</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.confirmButton, styles.sendButton]}
+                        style={[
+                          styles.confirmButton,
+                          styles.sendButton,
+                          existingQuest && styles.sendButtonDisabled
+                        ]}
                         onPress={handleConfirmAction}
                         activeOpacity={0.7}
-                        disabled={isSendingRequest}
+                        disabled={
+                          isSendingRequest ||
+                          existingQuest !== undefined ||
+                          (isProphecyOrCurse && (!isValidStake || isLoadingStats))
+                        }
                       >
                         {isSendingRequest ? (
                           <ActivityIndicator size="small" color={colors.backgroundStart} />
@@ -768,5 +937,105 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.backgroundStart,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.paddingSmall,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderRadius: 12,
+    padding: spacing.paddingMedium,
+    marginBottom: spacing.paddingLarge,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#fbbf24',
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  mojoStakeContainer: {
+    width: '100%',
+    marginBottom: spacing.paddingLarge,
+    gap: spacing.paddingSmall,
+  },
+  mojoStakeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+    textAlign: 'center',
+  },
+  pendingStakesText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.textSecondary,
+  },
+  credibilityLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingSmall,
+  },
+  inputContainer: {
+    marginVertical: spacing.paddingSmall,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.paddingXs,
+    textAlign: 'center',
+  },
+  mojoInput: {
+    backgroundColor: colors.glassDark,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: 12,
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingLarge,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  bettingInfo: {
+    backgroundColor: colors.glassDark,
+    borderRadius: 12,
+    padding: spacing.paddingMedium,
+    gap: spacing.paddingSmall,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  bettingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bettingLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  bettingValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  winValue: {
+    color: '#10b981', // Green for wins
+  },
+  lossValue: {
+    color: '#ef4444', // Red for losses
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

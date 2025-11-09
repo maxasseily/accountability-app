@@ -29,6 +29,31 @@ export async function getOrCreateUserStatistics(userId: string): Promise<UserSta
   return mapRowToUserStatistics(data);
 }
 
+export async function getUserStatistics(userId: string): Promise<UserStatistics | null> {
+  const { data, error } = await supabase
+    .from('user_statistics')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No statistics found - return default values
+      return {
+        userId,
+        credibility: 50,
+        lifetimeGoalsLogged: 0,
+        mojo: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    throw error;
+  }
+
+  return mapRowToUserStatistics(data);
+}
+
 export async function createUserStatistics(userId: string): Promise<UserStatistics> {
   const { data, error } = await supabase
     .from('user_statistics')
