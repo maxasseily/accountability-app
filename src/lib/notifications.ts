@@ -29,7 +29,7 @@ export async function getUnreadNotifications(userId: string): Promise<UserNotifi
     .select('*')
     .eq('user_id', userId)
     .eq('is_read', false)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: true }); // Show oldest first (chronological order)
 
   if (error) {
     console.error('Error fetching notifications:', error);
