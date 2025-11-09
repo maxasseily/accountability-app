@@ -14,7 +14,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.accountability.app.preview",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload daily accountability photos.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take daily accountability photos.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save photos to your library.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +34,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9cd1c823-5333-4b58-9af0-60e57c157f63"
+      }
     }
   }
 }

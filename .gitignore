@@ -44,3 +44,9 @@ yarn-error.*
 # Supabase local development
 supabase/.branches/
 supabase/.temp/
+
+# EAS
+eas-build-*.tar.gz
+*.ipa
+*.apk
+*.aab
