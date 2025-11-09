@@ -12,12 +12,14 @@ import { Stack, router } from 'expo-router';
 import GradientBackground from '../../../src/components/ui/GradientBackground';
 import { MessageList, MessageListRef } from '../../../src/components/chat/MessageList';
 import { MessageInput } from '../../../src/components/chat/MessageInput';
+import { EmojiActionBar } from '../../../src/components/chat/EmojiActionBar';
 import { colors } from '../../../src/utils/colors';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useGroup } from '../../../src/context/GroupContext';
 import {
   getMessages,
   sendMessage,
+  sendEmojiAction,
   subscribeToMessages,
 } from '../../../src/lib/chat';
 import type { MessageWithProfile, Message } from '../../../src/types/chat';
@@ -125,6 +127,22 @@ export default function ChatScreen() {
     }
   };
 
+  // Handle emoji action
+  const handleEmojiAction = async (emojiType: 'lock' | 'mayday' | 'rally') => {
+    if (!group?.id || !user?.id) return;
+
+    try {
+      setIsSending(true);
+      await sendEmojiAction(group.id, emojiType);
+      // Message will be added via real-time subscription
+    } catch (error) {
+      console.error('Error sending emoji action:', error);
+      Alert.alert('Error', 'Failed to send emoji action');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!user || !group) {
     return null;
   }
@@ -167,6 +185,7 @@ export default function ChatScreen() {
           )}
         </View>
 
+        <EmojiActionBar onEmojiPress={handleEmojiAction} disabled={isSending} />
         <MessageInput onSend={handleSendMessage} disabled={isSending} />
       </View>
     </GradientBackground>

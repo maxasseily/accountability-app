@@ -10,6 +10,12 @@ interface MessageBubbleProps {
   isOwnMessage: boolean;
 }
 
+const EMOJI_MAP = {
+  lock: '🔒',
+  mayday: '‼️',
+  rally: '📣',
+};
+
 export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
   const displayName = message.profile.full_name || message.profile.email.split('@')[0];
   const formattedTime = new Date(message.created_at).toLocaleTimeString('en-US', {
@@ -17,6 +23,27 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
     minute: '2-digit',
   });
 
+  // System message (emoji action)
+  if (message.is_system_message && message.emoji_type) {
+    const emoji = EMOJI_MAP[message.emoji_type];
+    return (
+      <View style={styles.systemMessageContainer}>
+        <BlurView intensity={30} tint="dark" style={styles.systemBubbleBlur}>
+          <LinearGradient
+            colors={['rgba(102, 126, 234, 0.25)', 'rgba(118, 75, 162, 0.25)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.systemBubble}
+          >
+            <Text style={styles.systemEmoji}>{emoji}</Text>
+            <Text style={styles.systemMessageText}>{message.content}</Text>
+          </LinearGradient>
+        </BlurView>
+      </View>
+    );
+  }
+
+  // Regular message
   return (
     <View style={[styles.container, isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer]}>
       {!isOwnMessage && (
@@ -91,5 +118,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     alignSelf: 'flex-end',
+  },
+  // System message styles
+  systemMessageContainer: {
+    marginVertical: 8,
+    marginHorizontal: 12,
+    alignSelf: 'stretch',
+  },
+  systemBubbleBlur: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  systemBubble: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  systemEmoji: {
+    fontSize: 52,
+    marginBottom: 12,
+  },
+  systemMessageText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
 });

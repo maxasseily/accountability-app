@@ -59,7 +59,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
               multiline
               maxLength={5000}
               editable={!disabled}
-              returnKeyType="send"
+              returnKeyType="default"
               onSubmitEditing={handleSend}
               blurOnSubmit={false}
               onFocus={() => setIsFocused(true)}
