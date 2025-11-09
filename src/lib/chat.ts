@@ -24,6 +24,48 @@ export async function sendMessage(groupId: string, content: string): Promise<Mes
 }
 
 /**
+ * Send an emoji action message to a group
+ * @param groupId - ID of the group
+ * @param emojiType - Type of emoji action ('lock', 'mayday', or 'rally')
+ * @returns The created message
+ */
+export async function sendEmojiAction(
+  groupId: string,
+  emojiType: 'lock' | 'mayday' | 'rally'
+): Promise<Message> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Get user profile for display name
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', user.id)
+    .single();
+
+  const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Someone';
+
+  // Generate message content based on emoji type
+  const messages = {
+    lock: `${displayName} is locking in`,
+    mayday: `Mayday!! ${displayName} needs motivation!`,
+    rally: `${displayName} is rallying the troops - go get 'em`,
+  };
+
+  const { data, error } = await supabase.rpc('send_emoji_action', {
+    p_group_id: groupId,
+    p_content: messages[emojiType],
+    p_emoji_type: emojiType,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as Message;
+}
+
+/**
  * Get messages for a group (paginated)
  * @param groupId - ID of the group
  * @param page - Page number (0-indexed)
