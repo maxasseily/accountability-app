@@ -6,7 +6,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useGoal } from '../../src/context/GoalContext';
 import { useAuth } from '../../src/context/AuthContext';
-import { getOrCreateUserStatistics } from '../../src/lib/statistics';
+import { useGroup } from '../../src/context/GroupContext';
+import { getOrCreateUserStatistics, getGroupMemberStats, type GroupMemberStats } from '../../src/lib/statistics';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -91,20 +92,8 @@ const STATUS_LADDER = [
   { id: 1, name: 'Noob', minScore: 0, icon: 'egg', color: colors.textMuted },
 ];
 
-// Mock group data
-const mockGroupData = {
-  name: 'Morning Runners',
-  capacity: { current: 7, max: 10 },
-  members: [
-    { id: 1, name: 'Sarah Chen', credibility: 92, rank: 'Veteran' },
-    { id: 2, name: 'Mike Johnson', credibility: 88, rank: 'Expert' },
-    { id: 3, name: 'Emma Davis', credibility: 85, rank: 'Expert' },
-    { id: 4, name: 'You', credibility: 78, rank: 'Expert' },
-    { id: 5, name: 'Alex Kim', credibility: 72, rank: 'Advanced' },
-    { id: 6, name: 'Jordan Lee', credibility: 65, rank: 'Advanced' },
-    { id: 7, name: 'Chris Park', credibility: 58, rank: 'Intermediate' },
-  ],
-};
+// Max group size constant
+const MAX_GROUP_SIZE = 6;
 
 type TimePeriod = 'week' | 'month' | 'sixMonth';
 type ViewMode = 'personal' | 'group';
@@ -117,6 +106,16 @@ const getCurrentStatus = (score: number) => {
     }
   }
   return STATUS_LADDER[STATUS_LADDER.length - 1];
+};
+
+// Helper function to get goal icon
+const getGoalIcon = (goalType: string | null): keyof typeof Ionicons.glyphMap => {
+  switch (goalType) {
+    case 'running':
+      return 'walk';
+    default:
+      return 'flag';
+  }
 };
 
 // Toggle button component
@@ -189,34 +188,6 @@ const CompactToggle = ({
   );
 };
 
-// Clapping hands component
-const ClappingHands = ({ memberId }: { memberId: number }) => {
-  const [isClapping, setIsClapping] = useState(false);
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  const handleClap = () => {
-    setIsClapping(true);
-    Animated.sequence([
-      Animated.timing(rotateAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-      Animated.timing(rotateAnim, { toValue: -1, duration: 100, useNativeDriver: true }),
-      Animated.timing(rotateAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-      Animated.timing(rotateAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-    ]).start(() => setIsClapping(false));
-  };
-
-  const rotation = rotateAnim.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ['-15deg', '15deg'],
-  });
-
-  return (
-    <TouchableOpacity onPress={handleClap} disabled={isClapping}>
-      <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-        <Ionicons name="hand-left" size={24} color={colors.accent} />
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
 
 // Credibility line chart with x-axis
 const CredibilityLineChart = ({ data, period }: { data: any[]; period: TimePeriod }) => {
@@ -324,11 +295,11 @@ const GoalProgressBarChart = ({ data, goalTotal }: { data: any[]; goalTotal: num
   return (
     <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
       {/* Grid lines */}
-      {[0, Math.round(goalTotal / 2), goalTotal, Math.round(goalTotal * 1.2)].map((value) => {
+      {[0, Math.round(goalTotal / 2), goalTotal, Math.round(goalTotal * 1.2)].map((value, index) => {
         const y = PADDING.top + chartHeight - (value / maxValue) * chartHeight;
         return (
           <Line
-            key={value}
+            key={`grid-${index}`}
             x1={PADDING.left}
             y1={y}
             x2={CHART_WIDTH - PADDING.right}
@@ -341,11 +312,11 @@ const GoalProgressBarChart = ({ data, goalTotal }: { data: any[]; goalTotal: num
       })}
 
       {/* Y-axis labels */}
-      {[0, Math.round(goalTotal / 2), goalTotal, Math.round(goalTotal * 1.2)].map((value) => {
+      {[0, Math.round(goalTotal / 2), goalTotal, Math.round(goalTotal * 1.2)].map((value, index) => {
         const y = PADDING.top + chartHeight - (value / maxValue) * chartHeight;
         return (
           <SvgText
-            key={`label-${value}`}
+            key={`label-${index}`}
             x={PADDING.left - 10}
             y={y + 4}
             fill={colors.textMuted}
@@ -394,6 +365,7 @@ const GoalProgressBarChart = ({ data, goalTotal }: { data: any[]; goalTotal: num
 export default function StatisticsScreen() {
   const { user } = useAuth();
   const { goal, hasGoal } = useGoal();
+  const { group, isInGroup } = useGroup();
   const insets = useSafeAreaInsets();
 
   const [viewMode, setViewMode] = useState<ViewMode>('personal');
@@ -402,6 +374,8 @@ export default function StatisticsScreen() {
   const [showStatusLadder, setShowStatusLadder] = useState(false);
   const [statistics, setStatistics] = useState<UserStatistics | null>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [groupMemberStats, setGroupMemberStats] = useState<GroupMemberStats[]>([]);
+  const [isGroupStatsLoading, setIsGroupStatsLoading] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -457,6 +431,34 @@ export default function StatisticsScreen() {
     }, [loadStatistics])
   );
 
+  const loadGroupMemberStats = useCallback(async () => {
+    if (!group || !user) {
+      setGroupMemberStats([]);
+      setIsGroupStatsLoading(false);
+      return;
+    }
+
+    setIsGroupStatsLoading(true);
+    try {
+      const members = await getGroupMemberStats(group.id, user.id);
+      if (!isMountedRef.current) return;
+      setGroupMemberStats(members);
+    } catch (error) {
+      console.error('Error loading group member stats:', error);
+      if (!isMountedRef.current) return;
+      setGroupMemberStats([]);
+    } finally {
+      if (!isMountedRef.current) return;
+      setIsGroupStatsLoading(false);
+    }
+  }, [group, user]);
+
+  useEffect(() => {
+    if (viewMode === 'group' && isInGroup) {
+      loadGroupMemberStats();
+    }
+  }, [viewMode, isInGroup, loadGroupMemberStats]);
+
   useEffect(() => {
     setCredibilityData(() => {
       const data = generateCredibilityData(timePeriod);
@@ -478,9 +480,18 @@ export default function StatisticsScreen() {
 
   const goalData = hasGoal && goal ? generateGoalCompletionData(timePeriod, goal.frequency) : null;
 
-  const groupAverageScore = Math.round(
-    mockGroupData.members.reduce((sum, m) => sum + m.credibility, 0) / mockGroupData.members.length
-  );
+  const groupAverageScore = useMemo(() => {
+    if (groupMemberStats.length === 0) return 0;
+    return Math.round(
+      groupMemberStats.reduce((sum, m) => sum + m.credibility, 0) / groupMemberStats.length
+    );
+  }, [groupMemberStats]);
+
+  const groupName = group?.name || 'Your Group';
+  const groupCapacity = {
+    current: group?.member_count || 0,
+    max: MAX_GROUP_SIZE,
+  };
 
   return (
     <GradientBackground>
@@ -624,7 +635,7 @@ export default function StatisticsScreen() {
             <>
               {/* Group Stats View */}
               <View style={styles.chartSection}>
-                <Text style={styles.title}>{mockGroupData.name}</Text>
+                <Text style={styles.title}>{groupName}</Text>
                 <Text style={styles.subtitle}>Group Statistics</Text>
 
                 {/* Time Period Toggle */}
@@ -655,7 +666,7 @@ export default function StatisticsScreen() {
                   <View style={styles.capacityTextContainer}>
                     <Text style={styles.capacityLabel}>Group Capacity</Text>
                     <Text style={styles.capacityValue}>
-                      {mockGroupData.capacity.current} / {mockGroupData.capacity.max} members
+                      {groupCapacity.current} / {groupCapacity.max} members
                     </Text>
                   </View>
                 </View>
@@ -666,7 +677,7 @@ export default function StatisticsScreen() {
                     end={{ x: 1, y: 0 }}
                     style={[
                       styles.capacityBarFill,
-                      { width: `${(mockGroupData.capacity.current / mockGroupData.capacity.max) * 100}%` },
+                      { width: `${(groupCapacity.current / groupCapacity.max) * 100}%` },
                     ]}
                   />
                 </View>
@@ -675,35 +686,53 @@ export default function StatisticsScreen() {
               {/* Leaderboard */}
               <View style={styles.leaderboardSection}>
                 <Text style={styles.sectionTitle}>Leaderboard</Text>
-                <View style={styles.leaderboardCard}>
-                  {mockGroupData.members.map((member, index) => (
-                    <View
-                      key={member.id}
-                      style={[
-                        styles.leaderboardItem,
-                        index !== mockGroupData.members.length - 1 && styles.leaderboardItemBorder,
-                        member.name === 'You' && styles.leaderboardItemHighlight,
-                      ]}
-                    >
-                      <View style={styles.leaderboardLeft}>
-                        <Text style={styles.leaderboardRank}>#{index + 1}</Text>
-                        <View style={styles.leaderboardInfo}>
-                          <Text style={[
-                            styles.leaderboardName,
-                            member.name === 'You' && styles.leaderboardNameYou,
-                          ]}>
-                            {member.name}
-                          </Text>
-                          <Text style={styles.leaderboardRankName}>{member.rank}</Text>
+                {isGroupStatsLoading ? (
+                  <View style={styles.leaderboardCard}>
+                    <ActivityIndicator color={colors.accent} style={{ padding: 20 }} />
+                  </View>
+                ) : groupMemberStats.length > 0 ? (
+                  <View style={styles.leaderboardCard}>
+                    {groupMemberStats.map((member, index) => {
+                      const memberStatus = getCurrentStatus(member.credibility);
+                      const displayName = member.isCurrentUser ? 'You' : (member.fullName || 'Unknown');
+                      return (
+                        <View
+                          key={member.userId}
+                          style={[
+                            styles.leaderboardItem,
+                            index !== groupMemberStats.length - 1 && styles.leaderboardItemBorder,
+                            member.isCurrentUser && styles.leaderboardItemHighlight,
+                          ]}
+                        >
+                          <View style={styles.leaderboardLeft}>
+                            <Text style={styles.leaderboardRank}>#{index + 1}</Text>
+                            <View style={styles.leaderboardInfo}>
+                              <Text style={[
+                                styles.leaderboardName,
+                                member.isCurrentUser && styles.leaderboardNameYou,
+                              ]}>
+                                {displayName}
+                              </Text>
+                              <Text style={styles.leaderboardRankName}>{memberStatus.name}</Text>
+                            </View>
+                          </View>
+                          <View style={styles.leaderboardRight}>
+                            <Text style={styles.leaderboardScore}>{member.credibility}</Text>
+                            <Ionicons
+                              name={getGoalIcon(member.goalType)}
+                              size={24}
+                              color={colors.accent}
+                            />
+                          </View>
                         </View>
-                      </View>
-                      <View style={styles.leaderboardRight}>
-                        <Text style={styles.leaderboardScore}>{member.credibility}</Text>
-                        <ClappingHands memberId={member.id} />
-                      </View>
-                    </View>
-                  ))}
-                </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.leaderboardCard}>
+                    <Text style={styles.emptyStateText}>No members found</Text>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -1117,6 +1146,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.textPrimary,
+    marginBottom: 16,
   },
   goalProgressCard: {
     backgroundColor: colors.glassLight,
@@ -1390,5 +1420,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: colors.textPrimary,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    padding: 20,
   },
 });
