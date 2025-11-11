@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { UserStatistics } from '../types/statistics';
+import type { GoalType } from '../types/goals';
 
 export function mapRowToUserStatistics(row: any): UserStatistics {
   return {
@@ -10,6 +11,14 @@ export function mapRowToUserStatistics(row: any): UserStatistics {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+export interface GroupMemberStats {
+  userId: string;
+  fullName: string | null;
+  credibility: number;
+  goalType: GoalType | null;
+  isCurrentUser: boolean;
 }
 
 export async function getOrCreateUserStatistics(userId: string): Promise<UserStatistics> {
@@ -73,4 +82,59 @@ export async function createUserStatistics(userId: string): Promise<UserStatisti
   }
 
   return mapRowToUserStatistics(data);
+}
+
+export async function getGroupMemberStats(groupId: string, currentUserId: string): Promise<GroupMemberStats[]> {
+  // Get all group members
+  const { data: members, error: membersError } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId);
+
+  if (membersError) {
+    throw membersError;
+  }
+
+  if (!members || members.length === 0) {
+    return [];
+  }
+
+  const userIds = members.map(m => m.user_id);
+
+  // Fetch profiles, statistics, and goals for all members in parallel
+  const [profilesResult, statisticsResult, goalsResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userIds),
+    supabase
+      .from('user_statistics')
+      .select('user_id, credibility')
+      .in('user_id', userIds),
+    supabase
+      .from('user_goals')
+      .select('user_id, goal_type')
+      .in('user_id', userIds),
+  ]);
+
+  if (profilesResult.error) throw profilesResult.error;
+  if (statisticsResult.error) throw statisticsResult.error;
+  if (goalsResult.error) throw goalsResult.error;
+
+  // Create lookup maps
+  const profilesMap = new Map(profilesResult.data?.map(p => [p.id, p.full_name]) || []);
+  const statisticsMap = new Map(statisticsResult.data?.map(s => [s.user_id, s.credibility]) || []);
+  const goalsMap = new Map(goalsResult.data?.map(g => [g.user_id, g.goal_type]) || []);
+
+  // Combine the data
+  const result = userIds.map(userId => ({
+    userId,
+    fullName: profilesMap.get(userId) || 'Unknown',
+    credibility: statisticsMap.get(userId) || 50,
+    goalType: goalsMap.get(userId) || null,
+    isCurrentUser: userId === currentUserId,
+  }));
+
+  // Sort by credibility descending
+  return result.sort((a, b) => b.credibility - a.credibility);
 }
