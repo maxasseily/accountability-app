@@ -12,7 +12,7 @@ interface QuestInfo {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
-  gradient: string[];
+  gradient: readonly [string, string, ...string[]];
 }
 
 const questTypes: Record<QuestType, QuestInfo> = {
@@ -20,28 +20,28 @@ const questTypes: Record<QuestType, QuestInfo> = {
     icon: 'people',
     title: 'Alliances',
     description:
-      'You and your teammates will go back to back and support each other to complete your goals for the week! If you both complete your goals, you will get double mojo and hella credibility!',
+      'You and your teammates will go back to back and support each other to complete your goals for the week! If you both complete your goals, you will get showered with Mojo and Credibility - but beware of letting each other down!',
     gradient: [colors.success, '#00b894'],
   },
   battle: {
     icon: 'flash',
     title: 'Battle',
     description:
-      'You and your teammates can go head to head and compete for who will do more to reach or surpass their goal for the week! Whoever wins will get a healthy boost of mojo, whoever loses may not be so lucky...',
+      'You and your teammates can go head to head and compete for who will do more to reach or surpass their goal for the week! Whoever wins will get the lion\'s share of the Mojo - the loser may pay a price!',
     gradient: [colors.error, '#e74c3c'],
   },
   prophecy: {
     icon: 'eye',
     title: 'Prophecy',
     description:
-      'If you think your group members have got their goal in the bag, you can show your support by prophesying their successes! If you prophesyse correctly, depending on how credible this group member is, you will get some mojo rewards for believing in them!',
+      'If you think your group members have got their goal in the bag, you can show your support by prophesying their successes! If you predict correctly, depending on how credible this group member is, you will get some Mojo rewards for believing in them!',
     gradient: [colors.accent, colors.accentGlow],
   },
   curse: {
     icon: 'skull',
     title: 'Curse',
     description:
-      'If you think your group members are too ambitious with their goals, you can stump up some mojo to prey on their downfall. Depending on how credible this group member is, you will get some mojo rewards for calling their bluff!',
+      'If you think your group members are too ambitious with their goals, you can let them know! Stump up some Mojo and reap the rewards if you have correctly called their bluff!',
     gradient: ['#9b59b6', '#8e44ad'],
   },
 };

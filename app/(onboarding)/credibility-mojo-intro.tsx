@@ -20,7 +20,7 @@ export default function CredibilityMojoIntroScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Your Journey Begins</Text>
-        <Text style={styles.subtitle}>Understand your power metrics</Text>
+        <Text style={styles.subtitle}>Understand your Aura Metrics</Text>
 
         {/* Credibility Score Card */}
         <View style={styles.metricCard}>
@@ -33,12 +33,12 @@ export default function CredibilityMojoIntroScreen() {
             </LinearGradient>
           </View>
 
-          <Text style={styles.metricTitle}>Credibility Score</Text>
+          <Text style={styles.metricTitle}>Credibility</Text>
 
           <Text style={styles.metricDescription}>
-            Credibility score is a metric to show how true you are to your word!
+            Credibility is a metric to show how true you are to your word!
             You've always wanted to get better at your goals, now is your time to
-            prove to yourself you can do it!
+            prove to yourself that you can achieve them!
           </Text>
 
           <View style={styles.benefitsContainer}>
@@ -51,19 +51,19 @@ export default function CredibilityMojoIntroScreen() {
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
-                Join a group for further perks
+                Join a group for more accountability
               </Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
-                High scores unlock better rankings
+                Higher credibility unlocks better ranking
               </Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
-                Command clout over group members
+                Command clout over your fellow group members
               </Text>
             </View>
           </View>
@@ -83,8 +83,8 @@ export default function CredibilityMojoIntroScreen() {
           <Text style={styles.metricTitle}>Mojo</Text>
 
           <Text style={styles.metricDescription}>
-            Mojo is your credibility currency! You will gain mojo by working
-            towards your goals! Even though one has to earn mojo, we thought we'd
+            Mojo is your credibility currency! You will gain Mojo by working
+            towards your goals! Even though one has to earn Mojo, we thought we'd
             start you off with a little to get going 😉
           </Text>
 
@@ -92,25 +92,25 @@ export default function CredibilityMojoIntroScreen() {
             <View style={styles.benefitRow}>
               <Ionicons name="trophy" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
-                Earn extra mojo through group quests
+                Receive bonus Mojo for completing your weekly goals
               </Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="people" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
-                Team up and face off with group members
+                Earn extra Mojo by taking part in group Quests
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="cash" size={20} color={colors.warning} />
+              <Ionicons name="flash" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
-                Bet mojo on teammates' success
+                Team up and face off with fellow group members in Alliances and Battles
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="trending-down" size={20} color={colors.warning} />
+              <Ionicons name="trending-up" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
-                Or prey on their downfall if you dare
+                Big Mojo payouts for predicting the success of your group members
               </Text>
             </View>
           </View>
