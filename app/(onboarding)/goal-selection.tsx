@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 
@@ -25,7 +25,7 @@ export default function GoalSelectionScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.iconContainer}>
-              <Ionicons name="fitness" size={48} color={colors.accent} />
+              <MaterialCommunityIcons name="run" size={48} color={colors.accent} />
             </View>
             <Text style={styles.optionTitle}>Running</Text>
             <Text style={styles.optionDescription}>
@@ -36,7 +36,7 @@ export default function GoalSelectionScreen() {
           {/* Coming Soon Option - Disabled */}
           <View style={[styles.optionCard, styles.disabledCard]}>
             <View style={styles.iconContainer}>
-              <Ionicons name="hourglass-outline" size={48} color={colors.textMuted} />
+              <MaterialCommunityIcons name="timer-sand" size={48} color={colors.textMuted} />
             </View>
             <Text style={[styles.optionTitle, styles.disabledText]}>Coming Soon</Text>
             <Text style={[styles.optionDescription, styles.disabledText]}>

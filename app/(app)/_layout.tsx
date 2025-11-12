@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -71,7 +71,7 @@ export default function AppLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
+            <MaterialCommunityIcons
               name={focused ? "home" : "home-outline"}
               size={focused ? 26 : 24}
               color={color}
@@ -89,8 +89,8 @@ export default function AppLayout() {
         options={{
           title: 'Group',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "people" : "people-outline"}
+            <MaterialCommunityIcons
+              name={focused ? "account-group" : "account-group-outline"}
               size={focused ? 26 : 24}
               color={color}
               style={{
@@ -107,7 +107,7 @@ export default function AppLayout() {
         options={{
           title: 'Arena',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
+            <MaterialCommunityIcons
               name={focused ? "shield" : "shield-outline"}
               size={focused ? 26 : 24}
               color={color}
@@ -125,8 +125,8 @@ export default function AppLayout() {
         options={{
           title: 'Statistics',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "stats-chart" : "stats-chart-outline"}
+            <MaterialCommunityIcons
+              name={focused ? "chart-line" : "chart-line-variant"}
               size={focused ? 26 : 24}
               color={color}
               style={{

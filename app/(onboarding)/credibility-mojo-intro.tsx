@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
@@ -29,7 +29,7 @@ export default function CredibilityMojoIntroScreen() {
               colors={[colors.accent, colors.accentGlow]}
               style={styles.iconGradient}
             >
-              <Ionicons name="shield-checkmark" size={48} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="shield-check" size={48} color={colors.textPrimary} />
             </LinearGradient>
           </View>
 
@@ -43,25 +43,25 @@ export default function CredibilityMojoIntroScreen() {
 
           <View style={styles.benefitsContainer}>
             <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
                 Improve by completing goals consistently
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
                 Join a group for more accountability
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
                 Higher credibility unlocks better ranking
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.success} />
               <Text style={styles.benefitText}>
                 Command clout over your fellow group members
               </Text>
@@ -76,7 +76,7 @@ export default function CredibilityMojoIntroScreen() {
               colors={[colors.warning, '#ff9500']}
               style={styles.iconGradient}
             >
-              <Ionicons name="flame" size={48} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="fire" size={48} color={colors.textPrimary} />
             </LinearGradient>
           </View>
 
@@ -90,25 +90,25 @@ export default function CredibilityMojoIntroScreen() {
 
           <View style={styles.benefitsContainer}>
             <View style={styles.benefitRow}>
-              <Ionicons name="trophy" size={20} color={colors.warning} />
+              <MaterialCommunityIcons name="trophy" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
                 Receive bonus Mojo for completing your weekly goals
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="people" size={20} color={colors.warning} />
+              <MaterialCommunityIcons name="account-group" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
                 Earn extra Mojo by taking part in group Quests
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="flash" size={20} color={colors.warning} />
+              <MaterialCommunityIcons name="lightning-bolt" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
                 Team up and face off with fellow group members in Alliances and Battles
               </Text>
             </View>
             <View style={styles.benefitRow}>
-              <Ionicons name="trending-up" size={20} color={colors.warning} />
+              <MaterialCommunityIcons name="trending-up" size={20} color={colors.warning} />
               <Text style={styles.benefitText}>
                 Big Mojo payouts for predicting the success of your group members
               </Text>
@@ -129,7 +129,7 @@ export default function CredibilityMojoIntroScreen() {
             style={styles.buttonGradient}
           >
             <Text style={styles.buttonText}>Continue</Text>
-            <Ionicons name="arrow-forward" size={24} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="arrow-right" size={24} color={colors.textPrimary} />
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

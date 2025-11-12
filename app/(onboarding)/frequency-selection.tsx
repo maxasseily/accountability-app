@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 import { useGoal } from '../../src/context/GoalContext';
@@ -43,7 +43,7 @@ export default function FrequencySelectionScreen() {
           onPress={() => router.back()}
           disabled={isLoading}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <Text style={styles.title}>How Often?</Text>
@@ -76,7 +76,7 @@ export default function FrequencySelectionScreen() {
               )}
               {enabled && (
                 <View style={styles.checkmarkContainer}>
-                  <Ionicons name="checkmark-circle" size={32} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={32} color={colors.accent} />
                 </View>
               )}
             </TouchableOpacity>

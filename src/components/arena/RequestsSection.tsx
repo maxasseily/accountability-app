@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useCallback, useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import { spacing } from '../../utils/spacing';
 import type { ArenaQuestWithProfiles } from '../../types/arena';
@@ -143,7 +143,7 @@ export default function RequestsSection({ currentUserId, refreshToken, onRefresh
                           {respondingToId === request.id ? (
                             <ActivityIndicator size="small" color={colors.textSecondary} />
                           ) : (
-                            <Ionicons name="close" size={20} color={colors.textSecondary} />
+                            <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
                           )}
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -155,7 +155,7 @@ export default function RequestsSection({ currentUserId, refreshToken, onRefresh
                           {respondingToId === request.id ? (
                             <ActivityIndicator size="small" color={colors.backgroundStart} />
                           ) : (
-                            <Ionicons name="checkmark" size={20} color={colors.backgroundStart} />
+                            <MaterialCommunityIcons name="check" size={20} color={colors.backgroundStart} />
                           )}
                         </TouchableOpacity>
                       </View>

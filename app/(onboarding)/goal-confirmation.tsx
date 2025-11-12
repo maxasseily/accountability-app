@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
@@ -25,7 +25,7 @@ export default function GoalConfirmationScreen() {
               colors={[colors.accent, colors.accentGlow]}
               style={styles.iconGradient}
             >
-              <Ionicons name="checkmark-circle" size={120} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="check-circle" size={120} color={colors.textPrimary} />
             </LinearGradient>
           </View>
 
@@ -37,7 +37,7 @@ export default function GoalConfirmationScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Your Goal</Text>
             <View style={styles.summaryContent}>
-              <Ionicons name="fitness" size={32} color={colors.accent} />
+              <MaterialCommunityIcons name="run" size={32} color={colors.accent} />
               <Text style={styles.summaryText}>
                 Run {goal?.frequency} times/week
               </Text>
@@ -63,7 +63,7 @@ export default function GoalConfirmationScreen() {
               style={styles.buttonGradient}
             >
               <Text style={styles.buttonText}>Continue to Home</Text>
-              <Ionicons name="arrow-forward" size={24} color={colors.textPrimary} />
+              <MaterialCommunityIcons name="arrow-right" size={24} color={colors.textPrimary} />
             </LinearGradient>
           </TouchableOpacity>
         </View>

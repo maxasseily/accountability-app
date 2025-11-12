@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
@@ -9,7 +9,7 @@ import { colors } from '../../src/utils/colors';
 type QuestType = 'alliance' | 'battle' | 'prophecy' | 'curse';
 
 interface QuestInfo {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   description: string;
   gradient: readonly [string, string, ...string[]];
@@ -17,14 +17,14 @@ interface QuestInfo {
 
 const questTypes: Record<QuestType, QuestInfo> = {
   alliance: {
-    icon: 'people',
+    icon: 'account-group',
     title: 'Alliances',
     description:
       'You and your teammates will go back to back and support each other to complete your goals for the week! If you both complete your goals, you will get showered with Mojo and Credibility - but beware of letting each other down!',
     gradient: [colors.success, '#00b894'],
   },
   battle: {
-    icon: 'flash',
+    icon: 'lightning-bolt',
     title: 'Battle',
     description:
       'You and your teammates can go head to head and compete for who will do more to reach or surpass their goal for the week! Whoever wins will get the lion\'s share of the Mojo - the loser may pay a price!',
@@ -55,7 +55,7 @@ export default function QuestTypesIntroScreen() {
     <View key={type} style={styles.questCard}>
       <View style={styles.questHeader}>
         <LinearGradient colors={info.gradient} style={styles.questIconGradient}>
-          <Ionicons name={info.icon} size={32} color={colors.textPrimary} />
+          <MaterialCommunityIcons name={info.icon} size={32} color={colors.textPrimary} />
         </LinearGradient>
         <Text style={styles.questTitle}>{info.title}</Text>
       </View>
@@ -95,7 +95,7 @@ export default function QuestTypesIntroScreen() {
             style={styles.buttonGradient}
           >
             <Text style={styles.buttonText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={24} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="arrow-right" size={24} color={colors.textPrimary} />
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

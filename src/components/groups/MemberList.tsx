@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useCallback, useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import type { GroupMemberWithProfile } from '../../types/groups';
 import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
@@ -108,7 +108,7 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
           <ActivityIndicator size="small" color={colors.accent} />
         ) : memberGoal ? (
           <View style={styles.goalProgressContent}>
-            <Ionicons name="fitness-outline" size={16} color={colors.accent} />
+            <MaterialCommunityIcons name="run" size={16} color={colors.accent} />
             <Text style={styles.goalProgressText}>
               {memberGoal.currentProgress}/{memberGoal.frequency}
             </Text>
@@ -143,7 +143,7 @@ export default function MemberList({ members, currentUserId, refreshToken, onRef
           accessibilityRole="button"
           accessibilityLabel="Refresh group members"
         >
-          <Ionicons name="refresh" size={18} color={colors.textPrimary} />
+          <MaterialCommunityIcons name="refresh" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
       <BlurView intensity={20} tint="dark" style={styles.card}>

@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Image, FlatList, ActivityIndicator, TouchableOp
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import { spacing } from '../../utils/spacing';
 import type { GroupMemberWithProfile } from '../../types/groups';
@@ -175,7 +175,7 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, onMemberPress, refres
           <ActivityIndicator size="small" color={colors.accent} />
         ) : memberGoal ? (
           <View style={styles.goalProgressContent}>
-            <Ionicons name="fitness-outline" size={16} color={colors.accent} />
+            <MaterialCommunityIcons name="run" size={16} color={colors.accent} />
             <Text style={styles.goalProgressText}>
               {memberGoal.currentProgress}/{memberGoal.frequency}
             </Text>
@@ -331,9 +331,9 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
   const pendingMemberName = pendingQuestMember?.profile.full_name || pendingQuestMember?.profile.email.split('@')[0] || 'User';
 
   // Calculate odds and payout for prophecy/curse (must be before existingQuest check)
-  const isProphecyOrCurse = selectedAction && (selectedAction.id === 'prophecy' || selectedAction.id === 'curse');
+  const isProphecyOrCurse = Boolean(selectedAction && (selectedAction.id === 'prophecy' || selectedAction.id === 'curse'));
   const stake = parseInt(mojoStake) || 0;
-  const odds = isProphecyOrCurse ? calculateOdds(selectedAction.id, memberCredibility) : 0;
+  const odds = isProphecyOrCurse && selectedAction ? calculateOdds(selectedAction.id, memberCredibility) : 0;
   const potentialPayout = isProphecyOrCurse ? Math.round(calculatePotentialPayout(stake, odds)) : 0;
   const availableMojo = userMojo - pendingMojoStakes;
   const isValidStake = stake > 0 && stake <= availableMojo;
@@ -353,7 +353,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
           accessibilityRole="button"
           accessibilityLabel="Refresh group members"
         >
-          <Ionicons name="refresh" size={18} color={colors.textPrimary} />
+          <MaterialCommunityIcons name="refresh" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
       <BlurView intensity={20} tint="dark" style={styles.card}>
@@ -422,7 +422,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                 <View style={styles.arenaModalHeader}>
                   <Text style={styles.arenaModalTitle}>{memberName}</Text>
                   <TouchableOpacity onPress={handleCloseArenaModal} style={styles.closeButton}>
-                    <Ionicons name="close" size={28} color={colors.textPrimary} />
+                    <MaterialCommunityIcons name="close" size={28} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
 
@@ -450,7 +450,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                                 <Text style={styles.arenaActionDescription}>{action.description}</Text>
                               </View>
                             </View>
-                            <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
+                            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textSecondary} />
                           </View>
                         </BlurView>
                       </LinearGradient>
@@ -488,7 +488,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                     {/* Existing Quest Warning */}
                     {existingQuest && (
                       <View style={styles.warningContainer}>
-                        <Ionicons name="information-circle" size={24} color="#f59e0b" />
+                        <MaterialCommunityIcons name="information" size={24} color="#f59e0b" />
                         <Text style={styles.warningText}>
                           You already have {existingQuest.status === 'pending' ? 'a pending' : 'an accepted'}{' '}
                           {selectedAction.label.toLowerCase()} with {pendingMemberName}.
