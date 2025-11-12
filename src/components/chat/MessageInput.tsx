@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 
 interface MessageInputProps {
@@ -78,12 +78,12 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
                   end={{ x: 1, y: 1 }}
                   style={styles.sendButtonGradient}
                 >
-                  <Ionicons name="send" size={16} color={colors.textPrimary} />
+                  <MaterialCommunityIcons name="send" size={16} color={colors.textPrimary} />
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
               <View style={[styles.sendButton, styles.sendButtonDisabled]}>
-                <Ionicons name="send" size={16} color={colors.textMuted} />
+                <MaterialCommunityIcons name="send" size={16} color={colors.textMuted} />
               </View>
             )}
           </View>

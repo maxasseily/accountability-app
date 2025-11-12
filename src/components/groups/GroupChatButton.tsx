@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '../../utils/colors';
 
@@ -29,7 +29,7 @@ export default function GroupChatButton({ onPress }: GroupChatButtonProps) {
         end={{ x: 1, y: 0 }}
         style={styles.chatGradient}
       >
-        <Ionicons name="chatbubbles" size={20} color={colors.textPrimary} />
+        <MaterialCommunityIcons name="chat" size={20} color={colors.textPrimary} />
         <Text style={styles.chatButtonText}>Group Chat</Text>
       </LinearGradient>
     </TouchableOpacity>
