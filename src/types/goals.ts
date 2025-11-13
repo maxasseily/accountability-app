@@ -1,10 +1,36 @@
-export type GoalType = 'running' | 'coming_soon';
+// Main activity categories
+export type ActivityType = 'brain' | 'body';
+
+// Sub-activities for each category
+export type BrainSubActivity = 'mindfulness' | 'learning_language';
+export type BodySubActivity = 'running' | 'gym';
+export type SubActivity = BrainSubActivity | BodySubActivity;
+
 export type GoalFrequency = 2 | 3 | 4;
+
+// Activity configuration for UI display
+export interface ActivityConfig {
+  id: ActivityType;
+  name: string;
+  description: string;
+  icon: string; // MaterialCommunityIcons name
+}
+
+export interface SubActivityConfig {
+  id: SubActivity;
+  parentActivity: ActivityType;
+  name: string;
+  description: string;
+  icon: string; // MaterialCommunityIcons name
+  actionVerb: string; // e.g., "Run", "Practice", "Go to"
+  actionNoun: string; // e.g., "running", "mindfulness", "the gym"
+}
 
 export interface UserGoal {
   id: string;
   userId: string;
-  goalType: GoalType;
+  activity: ActivityType;
+  subActivity: SubActivity;
   frequency: GoalFrequency;
   currentProgress: number; // Number of completions this week
   weekStartDate: string; // ISO date string for the start of the current week

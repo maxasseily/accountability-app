@@ -8,6 +8,7 @@ import { useGoal } from '../../src/context/GoalContext';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGroup } from '../../src/context/GroupContext';
 import { getOrCreateUserStatistics, getGroupMemberStats, type GroupMemberStats } from '../../src/lib/statistics';
+import { getSubActivityConfig } from '../../src/utils/goalConfig';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -108,15 +109,6 @@ const getCurrentStatus = (score: number) => {
   return STATUS_LADDER[STATUS_LADDER.length - 1];
 };
 
-// Helper function to get goal icon
-const getGoalIcon = (goalType: string | null): keyof typeof MaterialCommunityIcons.glyphMap => {
-  switch (goalType) {
-    case 'running':
-      return 'run';
-    default:
-      return 'flag';
-  }
-};
 
 // Toggle button component
 const ToggleButton = ({
@@ -719,7 +711,7 @@ export default function StatisticsScreen() {
                           <View style={styles.leaderboardRight}>
                             <Text style={styles.leaderboardScore}>{member.credibility}</Text>
                             <MaterialCommunityIcons
-                              name={getGoalIcon(member.goalType)}
+                              name={getSubActivityConfig(member.subActivity)?.icon as any || 'flag'}
                               size={24}
                               color={colors.accent}
                             />

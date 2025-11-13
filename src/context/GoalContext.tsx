@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { UserGoal, GoalType, GoalFrequency, GoalProgress } from '../types/goals';
+import type { UserGoal, GoalFrequency, GoalProgress, ActivityType, SubActivity } from '../types/goals';
 import { useAuth } from './AuthContext';
 import {
   getUserGoalFromDb,
@@ -14,8 +14,8 @@ interface GoalContextType {
   goal: UserGoal | null;
   isLoading: boolean;
   hasGoal: boolean;
-  setGoal: (goalType: GoalType, frequency: GoalFrequency) => Promise<void>;
-  updateGoal: (goalType: GoalType, frequency: GoalFrequency) => Promise<void>;
+  setGoal: (activity: ActivityType, subActivity: SubActivity, frequency: GoalFrequency) => Promise<void>;
+  updateGoal: (activity: ActivityType, subActivity: SubActivity, frequency: GoalFrequency) => Promise<void>;
   incrementProgress: () => Promise<{ mojoGained?: number; weeklyGoalCompleted?: boolean; hasAllianceBonus?: boolean }>;
   getProgress: () => GoalProgress | null;
   resetWeeklyProgress: () => Promise<void>;
@@ -85,13 +85,13 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   }, [loadGoal]);
 
   // Set a new goal
-  const setGoal = async (goalType: GoalType, frequency: GoalFrequency) => {
+  const setGoal = async (activity: ActivityType, subActivity: SubActivity, frequency: GoalFrequency) => {
     if (!user) {
       throw new Error('Not authenticated');
     }
 
     try {
-      const newGoal = await createGoalDb(user.id, goalType, frequency);
+      const newGoal = await createGoalDb(user.id, activity, subActivity, frequency);
       setGoalState(newGoal);
     } catch (error) {
       console.error('Error setting goal:', error);
@@ -100,13 +100,13 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Update existing goal
-  const updateGoal = async (goalType: GoalType, frequency: GoalFrequency) => {
+  const updateGoal = async (activity: ActivityType, subActivity: SubActivity, frequency: GoalFrequency) => {
     if (!user || !goal) {
       throw new Error('No goal to update');
     }
 
     try {
-      const updatedGoal = await updateGoalDb(user.id, goalType, frequency);
+      const updatedGoal = await updateGoalDb(user.id, activity, subActivity, frequency);
       setGoalState(updatedGoal);
     } catch (error) {
       console.error('Error updating goal:', error);

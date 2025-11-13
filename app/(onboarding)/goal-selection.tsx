@@ -1,51 +1,62 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
+import { getSubActivitiesForActivity, getActivityConfig } from '../../src/utils/goalConfig';
+import { ActivityType, SubActivity } from '../../src/types/goals';
 
 export default function GoalSelectionScreen() {
-  const handleSelectRunning = () => {
-    router.push('/(onboarding)/frequency-selection');
+  const params = useLocalSearchParams();
+  const activity = params.activity as ActivityType;
+
+  // Get the activity config and sub-activities
+  const activityConfig = getActivityConfig(activity);
+  const subActivities = getSubActivitiesForActivity(activity);
+
+  const handleSelectSubActivity = (subActivityId: SubActivity) => {
+    router.push({
+      pathname: '/(onboarding)/frequency-selection',
+      params: { activity, subActivity: subActivityId },
+    });
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   return (
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
       <View style={styles.container}>
-        <Text style={styles.title}>Choose Your Goal</Text>
-        <Text style={styles.subtitle}>What would you like to achieve?</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBack}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+
+        <Text style={styles.title}>{activityConfig?.name} Goals</Text>
+        <Text style={styles.subtitle}>Choose your specific goal</Text>
 
         <View style={styles.optionsContainer}>
-          {/* Running Option - Active */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={handleSelectRunning}
-            activeOpacity={0.8}
-          >
-            <View style={styles.iconContainer}>
-              <MaterialCommunityIcons name="run" size={48} color={colors.accent} />
-            </View>
-            <Text style={styles.optionTitle}>Running</Text>
-            <Text style={styles.optionDescription}>
-              Track your running goals and progress
-            </Text>
-          </TouchableOpacity>
-
-          {/* Coming Soon Option - Disabled */}
-          <View style={[styles.optionCard, styles.disabledCard]}>
-            <View style={styles.iconContainer}>
-              <MaterialCommunityIcons name="timer-sand" size={48} color={colors.textMuted} />
-            </View>
-            <Text style={[styles.optionTitle, styles.disabledText]}>Coming Soon</Text>
-            <Text style={[styles.optionDescription, styles.disabledText]}>
-              More goals will be available soon
-            </Text>
-            <View style={styles.comingSoonBadge}>
-              <Text style={styles.comingSoonText}>SOON</Text>
-            </View>
-          </View>
+          {subActivities.map((subActivity) => (
+            <TouchableOpacity
+              key={subActivity.id}
+              style={styles.optionCard}
+              onPress={() => handleSelectSubActivity(subActivity.id)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iconContainer}>
+                <MaterialCommunityIcons name={subActivity.icon as any} size={48} color={colors.accent} />
+              </View>
+              <Text style={styles.optionTitle}>{subActivity.name}</Text>
+              <Text style={styles.optionDescription}>
+                {subActivity.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </GradientBackground>
@@ -57,6 +68,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 80,
     paddingHorizontal: 24,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 48,
+    left: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.glassLight,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   title: {
     fontSize: 42,
@@ -86,10 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  disabledCard: {
-    opacity: 0.5,
-    borderColor: colors.textMuted,
-  },
   iconContainer: {
     width: 96,
     height: 96,
@@ -111,23 +132,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  disabledText: {
-    color: colors.textMuted,
-  },
-  comingSoonBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: colors.textMuted,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  comingSoonText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.backgroundStart,
-    letterSpacing: 1,
   },
 });

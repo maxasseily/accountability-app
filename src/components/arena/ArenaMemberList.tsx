@@ -14,6 +14,7 @@ import { sendArenaQuestRequest, calculateOdds, calculatePotentialPayout, checkEx
 import { useGroup } from '../../context/GroupContext';
 import { getOrCreateUserStatistics, getUserStatistics } from '../../lib/statistics';
 import { useAuth } from '../../context/AuthContext';
+import { getSubActivityConfig } from '../../utils/goalConfig';
 
 interface ArenaMemberListProps {
   members: GroupMemberWithProfile[];
@@ -175,7 +176,11 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, onMemberPress, refres
           <ActivityIndicator size="small" color={colors.accent} />
         ) : memberGoal ? (
           <View style={styles.goalProgressContent}>
-            <MaterialCommunityIcons name="run" size={16} color={colors.accent} />
+            <MaterialCommunityIcons
+              name={getSubActivityConfig(memberGoal.subActivity)?.icon as any}
+              size={16}
+              color={colors.accent}
+            />
             <Text style={styles.goalProgressText}>
               {memberGoal.currentProgress}/{memberGoal.frequency}
             </Text>
