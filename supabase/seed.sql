@@ -556,9 +556,10 @@ begin
   four_days_ago := current_date - interval '4 days';
 
   -- Alice (user 1): 3x/week, 0/3 completed (no progress yet)
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000001'::uuid,
+    'body',
     'running',
     3,
     0,
@@ -566,97 +567,108 @@ begin
     null,
     '{}'::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
-  -- Bob (user 2): 3x/week, 1/3 completed
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  -- Bob (user 2): 3x/week, 1/3 completed (gym)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000002'::uuid,
-    'running',
+    'body',
+    'gym',
     3,
     1,
     week_start,
     three_days_ago,
     array[three_days_ago]::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
-  -- Charlie (user 3): 3x/week, 2/3 completed
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  -- Charlie (user 3): 3x/week, 2/3 completed (learning a language)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000003'::uuid,
-    'running',
+    'brain',
+    'learning_language',
     3,
     2,
     week_start,
     one_day_ago,
     array[three_days_ago, one_day_ago]::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
-  -- Diana (user 4): 4x/week, 1/4 completed
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  -- Diana (user 4): 4x/week, 1/4 completed (gym)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000004'::uuid,
-    'running',
+    'body',
+    'gym',
     4,
     1,
     week_start,
     two_days_ago,
     array[two_days_ago]::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
-  -- Evan (user 5): 2x/week, 1/2 completed
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  -- Evan (user 5): 2x/week, 1/2 completed (mindfulness)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000005'::uuid,
-    'running',
+    'brain',
+    'mindfulness',
     2,
     1,
     week_start,
     three_days_ago,
     array[three_days_ago]::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
-  -- Fiona (user 6): 4x/week, 2/4 completed
-  insert into public.user_goals (user_id, goal_type, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  -- Fiona (user 6): 4x/week, 2/4 completed (learning language)
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
   values (
     '00000000-0000-0000-0000-000000000006'::uuid,
-    'running',
+    'brain',
+    'learning_language',
     4,
     2,
     week_start,
     one_day_ago,
     array[four_days_ago, one_day_ago]::date[]
   ) on conflict (user_id) do update set
-    goal_type = excluded.goal_type,
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
     frequency = excluded.frequency,
     current_progress = excluded.current_progress,
     week_start_date = excluded.week_start_date,
