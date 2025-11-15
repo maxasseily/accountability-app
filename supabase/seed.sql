@@ -364,6 +364,66 @@ values (
   now()
 ) on conflict (provider, provider_id) do nothing;
 
+-- User 7: grace@example.com
+insert into auth.users (
+  id,
+  instance_id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  recovery_sent_at,
+  last_sign_in_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
+)
+values (
+  '00000000-0000-0000-0000-000000000007'::uuid,
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'authenticated',
+  'authenticated',
+  'grace@example.com',
+  crypt('password123', gen_salt('bf')),
+  now(),
+  now(),
+  now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"full_name":"Grace Chen"}'::jsonb,
+  now(),
+  now(),
+  '',
+  '',
+  '',
+  ''
+) on conflict (id) do nothing;
+
+-- Create identity for grace@example.com
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  created_at,
+  updated_at
+)
+values (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000007'::uuid,
+  '00000000-0000-0000-0000-000000000007'::uuid,
+  'email',
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000007', 'grace@example.com')::jsonb,
+  now(),
+  now()
+) on conflict (provider, provider_id) do nothing;
+
 -- Now insert the profiles (these will be auto-created by the trigger, but we'll update them with our custom data)
 -- User 1: alice@example.com
 insert into public.profiles (id, email, full_name, avatar_url, rank)
@@ -443,6 +503,20 @@ values (
   'Fiona Lee',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Fiona',
   'Pro'
+) on conflict (id) do update set
+  email = excluded.email,
+  full_name = excluded.full_name,
+  avatar_url = excluded.avatar_url,
+  rank = excluded.rank;
+
+-- User 7: grace@example.com
+insert into public.profiles (id, email, full_name, avatar_url, rank)
+values (
+  '00000000-0000-0000-0000-000000000007'::uuid,
+  'grace@example.com',
+  'Grace Chen',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Grace',
+  'Champion'
 ) on conflict (id) do update set
   email = excluded.email,
   full_name = excluded.full_name,
@@ -534,6 +608,18 @@ values
   ('00000000-0000-0000-0000-000000000006'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000006/2025-10-26.jpg', '2025-10-26'),
   ('00000000-0000-0000-0000-000000000006'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000006/2025-10-27.jpg', '2025-10-27'),
   ('00000000-0000-0000-0000-000000000006'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000006/2025-10-28.jpg', '2025-10-28')
+on conflict (user_id, date) do nothing;
+
+-- Grace's photos (perfect streak)
+insert into public.daily_photos (user_id, photo_url, date)
+values
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-22.jpg', '2025-10-22'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-23.jpg', '2025-10-23'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-24.jpg', '2025-10-24'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-25.jpg', '2025-10-25'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-26.jpg', '2025-10-26'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-27.jpg', '2025-10-27'),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'daily-photos/00000000-0000-0000-0000-000000000007/2025-10-28.jpg', '2025-10-28')
 on conflict (user_id, date) do nothing;
 
 -- Seed user goals with varying completion levels
@@ -675,6 +761,26 @@ begin
     last_completion_date = excluded.last_completion_date,
     completion_dates = excluded.completion_dates;
 
+  -- Grace (user 7): 4x/week, 4/4 completed (running) - WEEKLY GOAL COMPLETE!
+  insert into public.user_goals (user_id, activity, sub_activity, frequency, current_progress, week_start_date, last_completion_date, completion_dates)
+  values (
+    '00000000-0000-0000-0000-000000000007'::uuid,
+    'body',
+    'running',
+    4,
+    4,
+    week_start,
+    one_day_ago,
+    array[four_days_ago, two_days_ago, one_day_ago]::date[]
+  ) on conflict (user_id) do update set
+    activity = excluded.activity,
+    sub_activity = excluded.sub_activity,
+    frequency = excluded.frequency,
+    current_progress = excluded.current_progress,
+    week_start_date = excluded.week_start_date,
+    last_completion_date = excluded.last_completion_date,
+    completion_dates = excluded.completion_dates;
+
 end $$;
 
 -- Seed arena quests for the group
@@ -803,6 +909,18 @@ values (
   80,
   88,
   38
+) on conflict (user_id) do update set
+  credibility = excluded.credibility,
+  mojo = excluded.mojo,
+  lifetime_goals_logged = excluded.lifetime_goals_logged;
+
+-- Grace: 100 mojo (top performer, completed weekly goal)
+insert into public.user_statistics (user_id, credibility, mojo, lifetime_goals_logged)
+values (
+  '00000000-0000-0000-0000-000000000007'::uuid,
+  95,
+  100,
+  50
 ) on conflict (user_id) do update set
   credibility = excluded.credibility,
   mojo = excluded.mojo,
