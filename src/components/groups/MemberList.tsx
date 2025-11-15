@@ -7,6 +7,7 @@ import type { GroupMemberWithProfile } from '../../types/groups';
 import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 import { useGoal } from '../../context/GoalContext';
 import type { UserGoal } from '../../types/goals';
+import { getSubActivityConfig } from '../../utils/goalConfig';
 
 interface MemberListProps {
   members: GroupMemberWithProfile[];
@@ -108,7 +109,11 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
           <ActivityIndicator size="small" color={colors.accent} />
         ) : memberGoal ? (
           <View style={styles.goalProgressContent}>
-            <MaterialCommunityIcons name="run" size={16} color={colors.accent} />
+            <MaterialCommunityIcons
+              name={getSubActivityConfig(memberGoal.subActivity)?.icon as any}
+              size={16}
+              color={colors.accent}
+            />
             <Text style={styles.goalProgressText}>
               {memberGoal.currentProgress}/{memberGoal.frequency}
             </Text>

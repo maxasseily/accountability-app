@@ -9,6 +9,7 @@ export default function OnboardingLayout() {
     >
       <Stack.Screen name="credibility-mojo-intro" />
       <Stack.Screen name="quest-types-intro" />
+      <Stack.Screen name="activity-selection" />
       <Stack.Screen name="goal-selection" />
       <Stack.Screen name="frequency-selection" />
       <Stack.Screen name="goal-confirmation" />

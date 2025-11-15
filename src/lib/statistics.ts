@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { UserStatistics } from '../types/statistics';
-import type { GoalType } from '../types/goals';
+import type { SubActivity } from '../types/goals';
 
 export function mapRowToUserStatistics(row: any): UserStatistics {
   return {
@@ -17,7 +17,7 @@ export interface GroupMemberStats {
   userId: string;
   fullName: string | null;
   credibility: number;
-  goalType: GoalType | null;
+  subActivity: SubActivity | null;
   isCurrentUser: boolean;
 }
 
@@ -113,7 +113,7 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
       .in('user_id', userIds),
     supabase
       .from('user_goals')
-      .select('user_id, goal_type')
+      .select('user_id, sub_activity')
       .in('user_id', userIds),
   ]);
 
@@ -124,14 +124,14 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
   // Create lookup maps
   const profilesMap = new Map(profilesResult.data?.map(p => [p.id, p.full_name]) || []);
   const statisticsMap = new Map(statisticsResult.data?.map(s => [s.user_id, s.credibility]) || []);
-  const goalsMap = new Map(goalsResult.data?.map(g => [g.user_id, g.goal_type]) || []);
+  const goalsMap = new Map(goalsResult.data?.map(g => [g.user_id, g.sub_activity]) || []);
 
   // Combine the data
   const result = userIds.map(userId => ({
     userId,
     fullName: profilesMap.get(userId) || 'Unknown',
     credibility: statisticsMap.get(userId) || 50,
-    goalType: goalsMap.get(userId) || null,
+    subActivity: goalsMap.get(userId) || null,
     isCurrentUser: userId === currentUserId,
   }));
 

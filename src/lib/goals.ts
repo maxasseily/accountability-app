@@ -3,7 +3,7 @@
  */
 
 import { supabase } from './supabase';
-import type { UserGoal, GoalType, GoalFrequency } from '../types/goals';
+import type { UserGoal, GoalFrequency, ActivityType, SubActivity } from '../types/goals';
 import type { GoalCompletionResult } from '../types/statistics';
 import { mapRowToUserStatistics } from './statistics';
 
@@ -23,7 +23,8 @@ function mapDbToUserGoal(row: any): UserGoal {
   return {
     id: row.id,
     userId: row.user_id,
-    goalType: row.goal_type as GoalType,
+    activity: row.activity as ActivityType,
+    subActivity: row.sub_activity as SubActivity,
     frequency: row.frequency as GoalFrequency,
     currentProgress: row.current_progress,
     weekStartDate: row.week_start_date,
@@ -60,14 +61,16 @@ export async function getUserGoalFromDb(userId: string): Promise<UserGoal | null
  */
 export async function createGoal(
   userId: string,
-  goalType: GoalType,
+  activity: ActivityType,
+  subActivity: SubActivity,
   frequency: GoalFrequency
 ): Promise<UserGoal> {
   const { data, error } = await supabase
     .from('user_goals')
     .insert({
       user_id: userId,
-      goal_type: goalType,
+      activity,
+      sub_activity: subActivity,
       frequency,
       current_progress: 0,
       week_start_date: getWeekStartDate(),
@@ -89,13 +92,15 @@ export async function createGoal(
  */
 export async function updateGoal(
   userId: string,
-  goalType: GoalType,
+  activity: ActivityType,
+  subActivity: SubActivity,
   frequency: GoalFrequency
 ): Promise<UserGoal> {
   const { data, error } = await supabase
     .from('user_goals')
     .update({
-      goal_type: goalType,
+      activity,
+      sub_activity: subActivity,
       frequency,
       current_progress: 0, // Reset progress when changing goal
       week_start_date: getWeekStartDate(),
