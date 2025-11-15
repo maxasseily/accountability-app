@@ -14,6 +14,49 @@ import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, reques
 import { getUnreadNotifications, markNotificationAsRead } from '../../src/lib/notifications';
 import { getSubActivityConfig, formatGoalText, getLogActionText } from '../../src/utils/goalConfig';
 
+// Get background color based on progress (0-7 logs)
+// 0 = dull grey, 1-3 = blue gradient, 4-5 = purple, 6-7 = red
+function getProgressColor(completed: number): string {
+  if (completed === 0) {
+    return 'rgba(100, 100, 100, 0.3)'; // Dull grey
+  } else if (completed === 1) {
+    return 'rgba(0, 100, 200, 0.3)'; // Light blue
+  } else if (completed === 2) {
+    return 'rgba(0, 150, 255, 0.4)'; // Medium blue
+  } else if (completed === 3) {
+    return 'rgba(0, 200, 255, 0.5)'; // Bright blue (cyan)
+  } else if (completed === 4) {
+    return 'rgba(100, 100, 255, 0.5)'; // Blue-purple
+  } else if (completed === 5) {
+    return 'rgba(150, 50, 200, 0.5)'; // Purple
+  } else if (completed === 6) {
+    return 'rgba(200, 50, 100, 0.6)'; // Red-purple
+  } else { // 7+
+    return 'rgba(255, 50, 50, 0.6)'; // Red
+  }
+}
+
+// Get border color based on progress
+function getProgressBorderColor(completed: number): string {
+  if (completed === 0) {
+    return 'rgba(150, 150, 150, 0.5)'; // Grey border
+  } else if (completed === 1) {
+    return 'rgba(0, 150, 255, 0.6)'; // Light blue border
+  } else if (completed === 2) {
+    return 'rgba(0, 180, 255, 0.7)'; // Medium blue border
+  } else if (completed === 3) {
+    return 'rgba(0, 212, 255, 0.8)'; // Bright blue (cyan) border
+  } else if (completed === 4) {
+    return 'rgba(120, 120, 255, 0.8)'; // Blue-purple border
+  } else if (completed === 5) {
+    return 'rgba(180, 80, 220, 0.8)'; // Purple border
+  } else if (completed === 6) {
+    return 'rgba(220, 80, 120, 0.8)'; // Red-purple border
+  } else { // 7+
+    return 'rgba(255, 80, 80, 0.9)'; // Red border
+  }
+}
+
 export default function HomeScreen() {
   const { logout, user } = useAuth();
   const { goal, hasGoal, isLoading, getProgress, incrementProgress, canLogToday } = useGoal();
@@ -444,7 +487,7 @@ export default function HomeScreen() {
                         end={{ x: 1, y: 0 }}
                         style={[
                           styles.progressBarFill,
-                          { width: `${progress.percentage}%` },
+                          { width: `${Math.min(progress.percentage, 100)}%` },
                         ]}
                       />
                     </View>
@@ -513,14 +556,22 @@ export default function HomeScreen() {
               </View>
 
               {/* Motivational Message */}
-              <View style={styles.motivationCard}>
+              <View style={[
+                styles.motivationCard,
+                {
+                  backgroundColor: getProgressColor(progress.completed),
+                  borderColor: getProgressBorderColor(progress.completed),
+                }
+              ]}>
                 <MaterialCommunityIcons name="fire" size={32} color={colors.accent} />
                 <Text style={styles.motivationText}>
-                  {progress.completed === progress.total
-                    ? "Amazing! You've crushed your goal this week!"
-                    : progress.completed > 0
-                      ? `Keep it up! ${progress.total - progress.completed} more to go!`
-                      : "Let's get started! Your first run awaits!"}
+                  {progress.completed > progress.total
+                    ? "You have surpassed your goal this week! You're crushing it!"
+                    : progress.completed === progress.total
+                      ? "Amazing! You've crushed your goal this week!"
+                      : progress.completed > 0
+                        ? `Keep it up! ${progress.total - progress.completed} more to go!`
+                        : `Let's get started! Your first ${getLogActionText(goal.subActivity).toLowerCase()} awaits!`}
                 </Text>
               </View>
             </>
