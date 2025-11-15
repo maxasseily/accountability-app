@@ -29,8 +29,11 @@ export const SUB_ACTIVITIES: SubActivityConfig[] = [
     name: 'Running',
     description: 'Track your running goals and progress',
     icon: 'run',
-    actionVerb: 'Run',
-    actionNoun: 'running',
+    templates: {
+      frequencyText: 'Run',           // "Run 3 times/week"
+      frequencyNoun: 'running',        // "Choose your weekly running frequency"
+      logAction: 'Run',                // "Log Run"
+    },
   },
   {
     id: 'gym',
@@ -38,8 +41,11 @@ export const SUB_ACTIVITIES: SubActivityConfig[] = [
     name: 'Gym',
     description: 'Track your gym workouts and progress',
     icon: 'dumbbell',
-    actionVerb: 'Go to',
-    actionNoun: 'the gym',
+    templates: {
+      frequencyText: 'Go to the gym',  // "Go to the gym 3 times/week"
+      frequencyNoun: 'gym session',    // "Choose your weekly gym session frequency"
+      logAction: 'Gym Session',        // "Log Gym Session"
+    },
   },
   // Brain sub-activities
   {
@@ -48,8 +54,11 @@ export const SUB_ACTIVITIES: SubActivityConfig[] = [
     name: 'Mindfulness',
     description: 'Practice meditation and mindfulness',
     icon: 'emoticon-happy-outline',
-    actionVerb: 'Practice',
-    actionNoun: 'mindfulness',
+    templates: {
+      frequencyText: 'Practice mindfulness',  // "Practice mindfulness 3 times/week"
+      frequencyNoun: 'mindfulness practice',  // "Choose your weekly mindfulness practice frequency"
+      logAction: 'Mindfulness',               // "Log Mindfulness"
+    },
   },
   {
     id: 'learning_language',
@@ -57,8 +66,11 @@ export const SUB_ACTIVITIES: SubActivityConfig[] = [
     name: 'Learning a Language',
     description: 'Learn and practice a new language',
     icon: 'book-alphabet',
-    actionVerb: 'Practice',
-    actionNoun: 'language learning',
+    templates: {
+      frequencyText: 'Practice a language',     // "Practice a language 3 times/week"
+      frequencyNoun: 'language learning',       // "Choose your weekly language learning frequency"
+      logAction: 'Language Practice',           // "Log Language Practice"
+    },
   },
 ];
 
@@ -85,20 +97,33 @@ export const getSubActivitiesForActivity = (activityId: ActivityType): SubActivi
 
 /**
  * Helper function to format goal display text
+ * Used for displaying the goal with frequency (e.g., "Run 3 times/week")
  */
 export const formatGoalText = (subActivityId: SubActivity, frequency: number): string => {
   const config = getSubActivityConfig(subActivityId);
   if (!config) return `${frequency} times/week`;
 
-  return `${config.actionVerb} ${frequency} times/week`;
+  return `${config.templates.frequencyText} ${frequency} times/week`;
 };
 
 /**
- * Helper function to format goal description
+ * Helper function to get frequency noun
+ * Used for "Choose your weekly X frequency" text
  */
-export const formatGoalDescription = (subActivityId: SubActivity): string => {
+export const getFrequencyNoun = (subActivityId: SubActivity): string => {
   const config = getSubActivityConfig(subActivityId);
-  if (!config) return 'Complete your goal';
+  if (!config) return 'activity';
 
-  return `${config.actionVerb} ${config.actionNoun}`;
+  return config.templates.frequencyNoun;
+};
+
+/**
+ * Helper function to get log action text
+ * Used for button text like "Log Run" or "Log Gym Session"
+ */
+export const getLogActionText = (subActivityId: SubActivity): string => {
+  const config = getSubActivityConfig(subActivityId);
+  if (!config) return 'Goal';
+
+  return config.templates.logAction;
 };
