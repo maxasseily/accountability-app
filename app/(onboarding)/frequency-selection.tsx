@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ export default function FrequencySelectionScreen() {
   const activity = params.activity as ActivityType;
   const subActivity = params.subActivity as SubActivity;
 
-  const { setGoal } = useGoal();
+  const { setGoal, updateGoal, goal } = useGoal();
   const [isLoading, setIsLoading] = useState(false);
 
   const subActivityConfig = getSubActivityConfig(subActivity);
@@ -24,16 +24,46 @@ export default function FrequencySelectionScreen() {
   const handleSelectFrequency = async (frequency: FrequencyOption) => {
     if (frequency !== 3) return; // Only 3x/week is enabled
 
+    // Check if user is trying to set the same goal they already have
+    if (goal && goal.activity === activity && goal.subActivity === subActivity && goal.frequency === frequency) {
+      Alert.alert(
+        'Same Goal',
+        'This is already your current goal! Would you like to keep it or choose a different goal?',
+        [
+          {
+            text: 'Keep Current Goal',
+            onPress: () => router.push('/(app)/home'),
+            style: 'default',
+          },
+          {
+            text: 'Choose Different Goal',
+            style: 'cancel',
+            // Just close the alert - user stays on frequency selection screen
+          },
+        ]
+      );
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await setGoal(activity, subActivity, frequency);
-      router.push({
-        pathname: '/(onboarding)/goal-confirmation',
-        params: { activity, subActivity, frequency: frequency.toString() },
-      });
+
+      // Use updateGoal if user already has a goal, otherwise use setGoal
+      if (goal) {
+        await updateGoal(activity, subActivity, frequency);
+        // User is changing their goal - take them straight to home
+        router.push('/(app)/home');
+      } else {
+        await setGoal(activity, subActivity, frequency);
+        // New user - show goal confirmation (part of onboarding)
+        router.push({
+          pathname: '/(onboarding)/goal-confirmation',
+          params: { activity, subActivity, frequency: frequency.toString() },
+        });
+      }
     } catch (error) {
       console.error('Error setting goal:', error);
-      alert('Failed to set goal. Please try again.');
+      Alert.alert('Error', 'Failed to set goal. Please try again.');
     } finally {
       setIsLoading(false);
     }
