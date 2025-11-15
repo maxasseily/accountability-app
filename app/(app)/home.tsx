@@ -194,35 +194,39 @@ export default function HomeScreen() {
           Alert.alert(
             'Success!',
             `Photo uploaded & goal logged!\n\n${mojoMessage}\n\nKeep up the great work!`,
-            [{ text: 'OK', onPress: async () => {
-              // Check for alliance bonus after main alert is dismissed
-              if (result.hasAllianceBonus && user) {
-                // Fetch the alliance notification that was just created
-                try {
-                  const notifications = await getUnreadNotifications(user.id);
-                  const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
+            [{
+              text: 'OK', onPress: async () => {
+                // Check for alliance bonus after main alert is dismissed
+                if (result.hasAllianceBonus && user) {
+                  // Fetch the alliance notification that was just created
+                  try {
+                    const notifications = await getUnreadNotifications(user.id);
+                    const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
 
-                  if (allianceNotification) {
-                    setTimeout(() => {
-                      Alert.alert(
-                        allianceNotification.title,
-                        allianceNotification.message,
-                        [{ text: 'Amazing!', onPress: async () => {
-                          // Mark as read
-                          try {
-                            await markNotificationAsRead(allianceNotification.id);
-                          } catch (error) {
-                            console.error('Error marking notification as read:', error);
-                          }
-                        }}]
-                      );
-                    }, 300);
+                    if (allianceNotification) {
+                      setTimeout(() => {
+                        Alert.alert(
+                          allianceNotification.title,
+                          allianceNotification.message,
+                          [{
+                            text: 'Amazing!', onPress: async () => {
+                              // Mark as read
+                              try {
+                                await markNotificationAsRead(allianceNotification.id);
+                              } catch (error) {
+                                console.error('Error marking notification as read:', error);
+                              }
+                            }
+                          }]
+                        );
+                      }, 300);
+                    }
+                  } catch (error) {
+                    console.error('Error fetching alliance notification:', error);
                   }
-                } catch (error) {
-                  console.error('Error fetching alliance notification:', error);
                 }
               }
-            }}]
+            }]
           );
         } catch (error) {
           console.error('Error logging goal:', error);
@@ -263,35 +267,39 @@ export default function HomeScreen() {
       Alert.alert(
         'Success!',
         `Goal logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`,
-        [{ text: 'OK', onPress: async () => {
-          // Check for alliance bonus after main alert is dismissed
-          if (result.hasAllianceBonus && user) {
-            // Fetch the alliance notification that was just created
-            try {
-              const notifications = await getUnreadNotifications(user.id);
-              const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
+        [{
+          text: 'OK', onPress: async () => {
+            // Check for alliance bonus after main alert is dismissed
+            if (result.hasAllianceBonus && user) {
+              // Fetch the alliance notification that was just created
+              try {
+                const notifications = await getUnreadNotifications(user.id);
+                const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
 
-              if (allianceNotification) {
-                setTimeout(() => {
-                  Alert.alert(
-                    allianceNotification.title,
-                    allianceNotification.message,
-                    [{ text: 'Amazing!', onPress: async () => {
-                      // Mark as read
-                      try {
-                        await markNotificationAsRead(allianceNotification.id);
-                      } catch (error) {
-                        console.error('Error marking notification as read:', error);
-                      }
-                    }}]
-                  );
-                }, 300);
+                if (allianceNotification) {
+                  setTimeout(() => {
+                    Alert.alert(
+                      allianceNotification.title,
+                      allianceNotification.message,
+                      [{
+                        text: 'Amazing!', onPress: async () => {
+                          // Mark as read
+                          try {
+                            await markNotificationAsRead(allianceNotification.id);
+                          } catch (error) {
+                            console.error('Error marking notification as read:', error);
+                          }
+                        }
+                      }]
+                    );
+                  }, 300);
+                }
+              } catch (error) {
+                console.error('Error fetching alliance notification:', error);
               }
-            } catch (error) {
-              console.error('Error fetching alliance notification:', error);
             }
           }
-        }}]
+        }]
       );
     } catch (error) {
       console.error('Error logging goal:', error);
@@ -485,7 +493,7 @@ export default function HomeScreen() {
                             color={colors.textPrimary}
                           />
                           <Text style={styles.logRunText}>
-                            {canLog ? 'Log Run' : 'Logged Today!'}
+                            {canLog ? `Log ${getSubActivityConfig(goal.subActivity)?.name}` : 'Logged Today!'}
                           </Text>
                         </>
                       )}
@@ -511,8 +519,8 @@ export default function HomeScreen() {
                   {progress.completed === progress.total
                     ? "Amazing! You've crushed your goal this week!"
                     : progress.completed > 0
-                    ? `Keep it up! ${progress.total - progress.completed} more to go!`
-                    : "Let's get started! Your first run awaits!"}
+                      ? `Keep it up! ${progress.total - progress.completed} more to go!`
+                      : "Let's get started! Your first run awaits!"}
                 </Text>
               </View>
             </>
