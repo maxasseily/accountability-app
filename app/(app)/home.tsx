@@ -12,7 +12,7 @@ import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
 import { getUnreadNotifications, markNotificationAsRead } from '../../src/lib/notifications';
-import { getSubActivityConfig, formatGoalText } from '../../src/utils/goalConfig';
+import { getSubActivityConfig, formatGoalText, getLogActionText } from '../../src/utils/goalConfig';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -417,7 +417,7 @@ export default function HomeScreen() {
                       size={32}
                       color={colors.accent}
                     />
-                    <View>
+                    <View style={styles.goalTextContainer}>
                       <Text style={styles.goalLabel}>Your Goal</Text>
                       <Text style={styles.goalTitle}>
                         {formatGoalText(goal.subActivity, goal.frequency)}
@@ -493,7 +493,7 @@ export default function HomeScreen() {
                             color={colors.textPrimary}
                           />
                           <Text style={styles.logRunText}>
-                            {canLog ? `Log ${getSubActivityConfig(goal.subActivity)?.name}` : 'Logged Today!'}
+                            {canLog ? `Log ${getLogActionText(goal.subActivity)}` : 'Logged Today!'}
                           </Text>
                         </>
                       )}
@@ -717,6 +717,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
+  goalTextContainer: {
+    flex: 1,
+  },
   goalLabel: {
     fontSize: 12,
     color: colors.textMuted,
@@ -728,6 +731,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.textPrimary,
+    flexWrap: 'wrap',
   },
   progressSection: {
     paddingTop: 20,

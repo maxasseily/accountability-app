@@ -22,8 +22,15 @@ export interface SubActivityConfig {
   name: string;
   description: string;
   icon: string; // MaterialCommunityIcons name
-  actionVerb: string; // e.g., "Run", "Practice", "Go to"
-  actionNoun: string; // e.g., "running", "mindfulness", "the gym"
+  // Text templates for different contexts
+  templates: {
+    // Used for "X 3 times/week" (goal display)
+    frequencyText: string; // e.g., "Run", "Go to the gym", "Practice mindfulness"
+    // Used for "Choose your weekly X frequency"
+    frequencyNoun: string; // e.g., "running", "gym session", "mindfulness practice"
+    // Used for action button text "Log X"
+    logAction: string; // e.g., "Run", "Gym Session", "Mindfulness"
+  };
 }
 
 export interface UserGoal {
