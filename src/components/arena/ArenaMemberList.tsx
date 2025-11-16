@@ -58,7 +58,8 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '⚔️',
     description: 'Challenge them to a friendly competition',
     color: 'rgba(220, 38, 38, 0.15)', // Deep red tinge
-    confirmTitle: 'Send a battle challenge?'
+    confirmTitle: 'Send a battle challenge?',
+    confirmDescription: 'You and your battle partner are locking horns! Whoever logs more sessions towards reaching their goal will receive a big Mojo reward! But be warned, whoever loses will be docked Mojo instead. Game on!'
   },
   {
     id: 'prophecy',
