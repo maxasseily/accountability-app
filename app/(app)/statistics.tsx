@@ -722,7 +722,7 @@ export default function StatisticsScreen() {
                   </View>
                 ) : (
                   <View style={styles.leaderboardCard}>
-                    <Text style={styles.emptyStateText}>No members found</Text>
+                    <Text style={styles.emptyStateText}>Join a group to enter a leaderboard!</Text>
                   </View>
                 )}
               </View>
