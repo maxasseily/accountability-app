@@ -563,7 +563,7 @@ export default function HomeScreen() {
                   borderColor: getProgressBorderColor(progress.completed),
                 }
               ]}>
-                <MaterialCommunityIcons name="fire" size={32} color={colors.accent} />
+                <MaterialCommunityIcons name="fire" size={32} color={colors.textPrimary} />
                 <Text style={styles.motivationText}>
                   {progress.completed > progress.total
                     ? "You have surpassed your goal this week! You're crushing it!"

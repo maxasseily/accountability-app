@@ -768,7 +768,7 @@ begin
     'body',
     'running',
     4,
-    4,
+    6,
     week_start,
     one_day_ago,
     array[four_days_ago, two_days_ago, one_day_ago]::date[]
