@@ -10,7 +10,7 @@ import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 import { useGoal } from '../../context/GoalContext';
 import type { UserGoal } from '../../types/goals';
 import type { QuestType, ArenaQuest } from '../../types/arena';
-import { sendArenaQuestRequest, calculateOdds, calculatePotentialPayout, checkExistingQuest, getPendingMojoStakes } from '../../utils/arenaQuests';
+import { sendArenaQuestRequest, calculateOdds, calculatePotentialPayout, checkExistingQuest, getPendingMojoStakes, hasAlreadyCompletedGoal, isTooLateForCurse } from '../../utils/arenaQuests';
 import { useGroup } from '../../context/GroupContext';
 import { getOrCreateUserStatistics, getUserStatistics } from '../../lib/statistics';
 import { useAuth } from '../../context/AuthContext';
@@ -67,7 +67,8 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '🔮',
     description: 'Make a prediction about their progress',
     color: 'rgba(147, 51, 234, 0.15)', // Deep purple tinge
-    confirmTitle: 'Send a prophecy request?'
+    confirmTitle: 'Place your prophecy?',
+    confirmDescription: 'Your prophecy will be placed immediately. If they complete their weekly goal, you win! Otherwise, you lose your stake.'
   },
   {
     id: 'curse',
@@ -75,7 +76,8 @@ const ARENA_ACTIONS: ArenaAction[] = [
     icon: '💀',
     description: 'Cast a playful curse',
     color: 'rgba(236, 72, 153, 0.15)', // Electric pink tinge
-    confirmTitle: 'Send a curse request?'
+    confirmTitle: 'Place your curse?',
+    confirmDescription: 'Your curse will be placed immediately. If they fail to complete their weekly goal, you win! Otherwise, you lose your stake.'
   },
 ];
 
@@ -213,6 +215,10 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
   // Existing quest tracking
   const [existingQuests, setExistingQuests] = useState<Map<string, ArenaQuest>>(new Map());
 
+  // Member goal state for validation
+  const [memberGoal, setMemberGoal] = useState<UserGoal | null>(null);
+  const { getUserGoal } = useGoal();
+
   const handlePhotoPress = (photo: DailyPhoto, memberName: string) => {
     setSelectedPhoto({ photo, name: memberName });
   };
@@ -260,7 +266,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
     // Close the arena modal immediately so confirmation modal appears on top
     setSelectedMember(null);
 
-    // For prophecy/curse, fetch statistics after closing modal
+    // For prophecy/curse, fetch statistics and goal after closing modal
     if (action.id === 'prophecy' || action.id === 'curse') {
       setIsLoadingStats(true);
       try {
@@ -275,11 +281,16 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
         // Fetch member's credibility (read-only, don't create)
         const memberStats = await getUserStatistics(member.user_id);
         setMemberCredibility(memberStats?.credibility ?? 50);
+
+        // Fetch member's goal for validation
+        const goal = await getUserGoal(member.user_id);
+        setMemberGoal(goal);
       } catch (error) {
         console.error('Error fetching statistics:', error);
         // Set defaults on error
         setMemberCredibility(50);
         setPendingMojoStakes(0);
+        setMemberGoal(null);
       } finally {
         setIsLoadingStats(false);
       }
@@ -290,6 +301,7 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
     setSelectedAction(null);
     setPendingQuestMember(null);
     setMojoStake('');
+    setMemberGoal(null);
     // Clear existing quest info when closing
     if (pendingQuestMember && selectedAction) {
       const questKey = `${pendingQuestMember.user_id}-${selectedAction.id}`;
@@ -340,13 +352,24 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
   const isProphecyOrCurse = Boolean(selectedAction && (selectedAction.id === 'prophecy' || selectedAction.id === 'curse'));
   const stake = parseInt(mojoStake) || 0;
   const odds = isProphecyOrCurse && selectedAction ? calculateOdds(selectedAction.id, memberCredibility) : 0;
-  const potentialPayout = isProphecyOrCurse ? Math.round(calculatePotentialPayout(stake, odds)) : 0;
+  // Display only the profit (stake * odds), actual payout in DB is stake * (1 + odds)
+  const potentialWinnings = isProphecyOrCurse ? Math.round(stake * odds) : 0;
   const availableMojo = userMojo - pendingMojoStakes;
   const isValidStake = stake > 0 && stake <= availableMojo;
 
   // Check if there's an existing quest
   const questKey = pendingQuestMember && selectedAction ? `${pendingQuestMember.user_id}-${selectedAction.id}` : null;
   const existingQuest = questKey ? existingQuests.get(questKey) : undefined;
+
+  // Validation warnings for prophecy/curse
+  let warningMessage: string | null = null;
+  if (selectedAction && memberGoal && !existingQuest) {
+    if (selectedAction.id === 'prophecy' && hasAlreadyCompletedGoal(memberGoal.currentProgress, memberGoal.frequency)) {
+      warningMessage = `${pendingMemberName} has already completed their weekly goal (${memberGoal.currentProgress}/${memberGoal.frequency}). You would automatically win - there's no pride in cheating Mojo!`;
+    } else if (selectedAction.id === 'curse' && isTooLateForCurse(memberGoal.currentProgress, memberGoal.frequency)) {
+      warningMessage = `It's too late in the week for ${pendingMemberName} to complete their goal (${memberGoal.currentProgress}/${memberGoal.frequency}). You would automatically win - there's no pride in cheating Mojo!`;
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -502,8 +525,18 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                       </View>
                     )}
 
+                    {/* Prophecy/Curse Validation Warning */}
+                    {warningMessage && !existingQuest && (
+                      <View style={styles.warningContainer}>
+                        <MaterialCommunityIcons name="alert" size={24} color="#f59e0b" />
+                        <Text style={styles.warningText}>
+                          {warningMessage}
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Mojo Stake Input for Prophecy/Curse */}
-                    {isProphecyOrCurse && !existingQuest && (
+                    {isProphecyOrCurse && !existingQuest && !warningMessage && (
                       <View style={styles.mojoStakeContainer}>
                         {isLoadingStats ? (
                           <ActivityIndicator size="small" color={colors.accent} />
@@ -539,9 +572,9 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                                   <Text style={styles.bettingValue}>{odds.toFixed(2)}x</Text>
                                 </View>
                                 <View style={styles.bettingRow}>
-                                  <Text style={styles.bettingLabel}>Potential Win:</Text>
+                                  <Text style={styles.bettingLabel}>Potential Profit:</Text>
                                   <Text style={[styles.bettingValue, styles.winValue]}>
-                                    +{potentialPayout} mojo
+                                    +{potentialWinnings} mojo
                                   </Text>
                                 </View>
                                 <View style={styles.bettingRow}>
@@ -575,20 +608,25 @@ export default function ArenaMemberList({ members, currentUserId, refreshToken, 
                         style={[
                           styles.confirmButton,
                           styles.sendButton,
-                          existingQuest && styles.sendButtonDisabled
+                          (existingQuest || warningMessage) && styles.sendButtonDisabled
                         ]}
                         onPress={handleConfirmAction}
                         activeOpacity={0.7}
                         disabled={
                           isSendingRequest ||
                           existingQuest !== undefined ||
+                          warningMessage !== null ||
                           (isProphecyOrCurse && (!isValidStake || isLoadingStats))
                         }
                       >
                         {isSendingRequest ? (
                           <ActivityIndicator size="small" color={colors.backgroundStart} />
                         ) : (
-                          <Text style={styles.sendButtonText}>Send Request</Text>
+                          <Text style={styles.sendButtonText}>
+                            {selectedAction?.id === 'prophecy' ? 'Deliver Prophecy' :
+                             selectedAction?.id === 'curse' ? 'Deliver Curse' :
+                             'Send Request'}
+                          </Text>
                         )}
                       </TouchableOpacity>
                     </View>

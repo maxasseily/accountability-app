@@ -3,6 +3,8 @@ import type { ArenaQuest, ArenaQuestWithProfiles, QuestType } from '../types/are
 
 /**
  * Send an arena quest request to another user
+ * For prophecy/curse: Creates instantly without requiring acceptance
+ * For alliance/battle: Creates pending request that requires acceptance
  */
 export async function sendArenaQuestRequest(
   groupId: string,
@@ -10,6 +12,24 @@ export async function sendArenaQuestRequest(
   questType: QuestType,
   mojoStake?: number
 ): Promise<string> {
+  // For prophecy/curse, use instant creation function
+  if (questType === 'prophecy' || questType === 'curse') {
+    const { data, error } = await supabase.rpc('create_instant_prophecy_curse', {
+      p_group_id: groupId,
+      p_receiver_id: receiverId,
+      p_quest_type: questType,
+      p_mojo_stake: mojoStake || 0,
+    });
+
+    if (error) {
+      console.error('Error creating instant prophecy/curse:', error);
+      throw error;
+    }
+
+    return data as string;
+  }
+
+  // For alliance/battle, use traditional request flow
   const { data, error } = await supabase.rpc('send_arena_quest_request', {
     p_group_id: groupId,
     p_receiver_id: receiverId,
@@ -185,7 +205,8 @@ export function calculateOdds(questType: QuestType, receiverCredibility: number)
 /**
  * Calculate potential payout for a bet
  * Returns total payout including stake return: stake * (1 + odds)
- * So 1:1 odds with 10 mojo stake = 20 mojo total (10 stake + 10 winnings)
+ * So 1:1 odds with 10 mojo stake = 20 mojo total (10 stake back + 10 profit)
+ * NOTE: This is used by the database. Frontend should display only profit (stake * odds)
  */
 export function calculatePotentialPayout(mojoStake: number, odds: number): number {
   return mojoStake * (1 + odds);
@@ -193,6 +214,7 @@ export function calculatePotentialPayout(mojoStake: number, odds: number): numbe
 
 /**
  * Check if an identical quest already exists between two users
+ * For two-way quests (alliance/battle), checks both directions
  * Returns the existing quest if found, null otherwise
  */
 export async function checkExistingQuest(
@@ -201,6 +223,25 @@ export async function checkExistingQuest(
   receiverId: string,
   questType: QuestType
 ): Promise<ArenaQuest | null> {
+  // For two-way quests (alliance/battle), check both directions
+  if (questType === 'alliance' || questType === 'battle') {
+    const { data, error } = await supabase
+      .from('arena_quests')
+      .select('*')
+      .eq('group_id', groupId)
+      .eq('quest_type', questType)
+      .in('status', ['pending', 'accepted'])
+      .or(`and(sender_id.eq.${senderId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${senderId})`);
+
+    if (error) {
+      console.error('Error checking existing quest:', error);
+      return null;
+    }
+
+    return data && data.length > 0 ? (data[0] as ArenaQuest) : null;
+  }
+
+  // For one-way quests (prophecy/curse), check only sender -> receiver
   const { data, error } = await supabase
     .from('arena_quests')
     .select('*')
@@ -242,4 +283,36 @@ export async function getPendingMojoStakes(userId: string): Promise<number> {
 
   // Sum up all pending stakes
   return data.reduce((total, quest) => total + (quest.mojo_stake || 0), 0);
+}
+
+/**
+ * Get day of week (0 = Monday, 6 = Sunday)
+ */
+function getDayOfWeek(): number {
+  const now = new Date();
+  const day = now.getDay();
+  // Convert Sunday (0) to 6, and shift others down by 1 (Monday = 0)
+  return day === 0 ? 6 : day - 1;
+}
+
+/**
+ * Check if it's too late in the week for a curse to be valid
+ * A curse can only be placed if there's still enough time for the receiver to complete their goal
+ * For example, if the goal is 3/week and it's Saturday (day 5) and they have 0 progress,
+ * they can't complete 3 in 1 day
+ */
+export function isTooLateForCurse(currentProgress: number, frequency: number): boolean {
+  const dayOfWeek = getDayOfWeek(); // 0 = Monday, 6 = Sunday
+  const daysRemaining = 7 - dayOfWeek; // Including today
+  const progressNeeded = frequency - currentProgress;
+
+  // If they need more progress than days remaining (including today), it's impossible
+  return progressNeeded > daysRemaining;
+}
+
+/**
+ * Check if receiver has already completed their weekly goal (prophecy would be pointless)
+ */
+export function hasAlreadyCompletedGoal(currentProgress: number, frequency: number): boolean {
+  return currentProgress >= frequency;
 }
