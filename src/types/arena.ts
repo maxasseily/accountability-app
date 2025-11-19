@@ -1,5 +1,5 @@
-export type QuestType = 'alliance' | 'battle' | 'prophecy' | 'curse';
-export type QuestStatus = 'pending' | 'accepted' | 'rejected';
+export type QuestType = 'alliance' | 'battle' | 'prophecy' | 'curse' | 'speculation';
+export type QuestStatus = 'pending' | 'accepted' | 'rejected' | 'resolved';
 export type ProphecyCurseStatus = 'active' | 'won' | 'lost' | 'refunded';
 
 export interface ArenaQuest {
@@ -18,6 +18,12 @@ export interface ArenaQuest {
   prophecy_curse_status?: ProphecyCurseStatus;
   resolution_date?: string;
   week_start_date?: string;
+  // Speculation fields
+  speculation_description?: string;
+  speculation_creator_side?: boolean; // true = creator bets FOR, false = creator bets AGAINST
+  speculation_accepter_id?: string;
+  speculation_resolver_id?: string;
+  speculation_result?: boolean; // true = description happened (FOR wins), false = didn't happen (AGAINST wins)
 }
 
 export interface ArenaQuestWithProfiles extends ArenaQuest {

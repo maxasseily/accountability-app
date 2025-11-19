@@ -316,3 +316,166 @@ export function isTooLateForCurse(currentProgress: number, frequency: number): b
 export function hasAlreadyCompletedGoal(currentProgress: number, frequency: number): boolean {
   return currentProgress >= frequency;
 }
+
+/**
+ * Create a speculation quest
+ */
+export async function createSpeculationQuest(
+  groupId: string,
+  description: string,
+  creatorSide: boolean,
+  odds: number,
+  mojoStake: number
+): Promise<string> {
+  const { data, error } = await supabase.rpc('create_speculation_quest', {
+    p_group_id: groupId,
+    p_description: description,
+    p_creator_side: creatorSide,
+    p_odds: odds,
+    p_mojo_stake: mojoStake,
+  });
+
+  if (error) {
+    console.error('Error creating speculation quest:', error);
+    throw error;
+  }
+
+  return data as string;
+}
+
+/**
+ * Accept a speculation quest
+ */
+export async function acceptSpeculationQuest(questId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('accept_speculation_quest', {
+    p_quest_id: questId,
+  });
+
+  if (error) {
+    console.error('Error accepting speculation quest:', error);
+    throw error;
+  }
+
+  return data as boolean;
+}
+
+/**
+ * Resolve a speculation quest (by a third party)
+ */
+export async function resolveSpeculationQuest(
+  questId: string,
+  result: boolean
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('resolve_speculation_quest', {
+    p_quest_id: questId,
+    p_result: result,
+  });
+
+  if (error) {
+    console.error('Error resolving speculation quest:', error);
+    throw error;
+  }
+
+  return data as boolean;
+}
+
+/**
+ * Get pending speculation offers for a group
+ */
+export async function getPendingSpeculationsForGroup(
+  groupId: string
+): Promise<ArenaQuestWithProfiles[]> {
+  // Get speculation quests that are pending acceptance
+  const { data: quests, error: questsError } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('quest_type', 'speculation')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (questsError) {
+    console.error('Error fetching pending speculations:', questsError);
+    throw questsError;
+  }
+
+  if (!quests || quests.length === 0) {
+    return [];
+  }
+
+  // Get unique user IDs
+  const userIds = [...new Set(quests.map(q => q.sender_id))];
+
+  // Fetch profiles for all users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of user ID to profile
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+  // Combine quests with profiles
+  return quests.map(quest => ({
+    ...quest,
+    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
+    receiver_profile: { full_name: null, email: 'Pending' }, // No receiver yet
+  })) as ArenaQuestWithProfiles[];
+}
+
+/**
+ * Get accepted (ongoing) speculation quests for a group
+ */
+export async function getAcceptedSpeculationsForGroup(
+  groupId: string
+): Promise<ArenaQuestWithProfiles[]> {
+  // Get speculation quests that are accepted but not resolved
+  const { data: quests, error: questsError } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('quest_type', 'speculation')
+    .eq('status', 'accepted')
+    .order('created_at', { ascending: false });
+
+  if (questsError) {
+    console.error('Error fetching accepted speculations:', questsError);
+    throw questsError;
+  }
+
+  if (!quests || quests.length === 0) {
+    return [];
+  }
+
+  // Get unique user IDs (sender and accepter)
+  const userIds = [...new Set([
+    ...quests.map(q => q.sender_id),
+    ...quests.filter(q => q.speculation_accepter_id).map(q => q.speculation_accepter_id!)
+  ])];
+
+  // Fetch profiles for all users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of user ID to profile
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+  // Combine quests with profiles
+  return quests.map(quest => ({
+    ...quest,
+    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
+  })) as ArenaQuestWithProfiles[];
+}
