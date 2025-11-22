@@ -9,6 +9,7 @@ import type { ArenaQuestWithProfiles } from '../../types/arena';
 import {
   getPendingSpeculationsForGroup,
   getAcceptedSpeculationsForGroup,
+  getResolvedSpeculationsForGroup,
   createSpeculationQuest,
   acceptSpeculationQuest,
   resolveSpeculationQuest,
@@ -37,6 +38,7 @@ export default function SpeculationSection({
   const { user } = useAuth();
   const [pendingSpeculations, setPendingSpeculations] = useState<ArenaQuestWithProfiles[]>([]);
   const [acceptedSpeculations, setAcceptedSpeculations] = useState<ArenaQuestWithProfiles[]>([]);
+  const [resolvedSpeculations, setResolvedSpeculations] = useState<ArenaQuestWithProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSpeculation, setSelectedSpeculation] = useState<ArenaQuestWithProfiles | null>(null);
@@ -57,12 +59,14 @@ export default function SpeculationSection({
   const loadSpeculations = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [pending, accepted] = await Promise.all([
+      const [pending, accepted, resolved] = await Promise.all([
         getPendingSpeculationsForGroup(groupId),
         getAcceptedSpeculationsForGroup(groupId),
+        getResolvedSpeculationsForGroup(groupId),
       ]);
       setPendingSpeculations(pending);
       setAcceptedSpeculations(accepted);
+      setResolvedSpeculations(resolved);
     } catch (error) {
       console.error('Error loading speculations:', error);
     } finally {
@@ -345,7 +349,76 @@ export default function SpeculationSection({
                     </View>
                   )}
 
-                  {pendingSpeculations.length === 0 && acceptedSpeculations.length === 0 && (
+                  {/* Resolved Speculations */}
+                  {resolvedSpeculations.length > 0 && (
+                    <View style={styles.speculationsList}>
+                      <Text style={styles.sectionLabel}>Recent Results</Text>
+                      {resolvedSpeculations.map((speculation) => {
+                        const creatorName = speculation.sender_profile.full_name || speculation.sender_profile.email.split('@')[0];
+                        const accepterName = speculation.receiver_profile.full_name || speculation.receiver_profile.email.split('@')[0];
+
+                        // Determine winner based on result and creator's side
+                        const creatorWon = speculation.speculation_result === speculation.speculation_creator_side;
+                        const winnerId = creatorWon ? speculation.sender_id : speculation.speculation_accepter_id;
+                        const winnerName = creatorWon ? creatorName : accepterName;
+                        const loserName = creatorWon ? accepterName : creatorName;
+
+                        const totalPot = (speculation.mojo_stake || 0) * 2;
+                        const isUserInvolved = currentUserId === speculation.sender_id || currentUserId === speculation.speculation_accepter_id;
+                        const didUserWin = winnerId === currentUserId;
+
+                        const resultLabel = speculation.speculation_result ? 'YES' : 'NO';
+                        const resultColor = speculation.speculation_result ? '#10b981' : '#ef4444';
+
+                        return (
+                          <View key={speculation.id} style={styles.speculationItemWrapper}>
+                            <LinearGradient
+                              colors={SPECULATION_GRADIENT as any}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.speculationGradient}
+                            >
+                              <BlurView intensity={10} tint="dark" style={styles.speculationBlur}>
+                                <View style={styles.speculationItem}>
+                                  <Text style={styles.speculationDescription}>
+                                    "{speculation.speculation_description}"
+                                  </Text>
+                                  <View style={[styles.resultBadge, { backgroundColor: `${resultColor}33`, borderColor: `${resultColor}66` }]}>
+                                    <Text style={[styles.resultText, { color: resultColor }]}>
+                                      Result: {resultLabel}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.resultsContainer}>
+                                    <View style={styles.winnerLoserRow}>
+                                      <View style={styles.winnerBox}>
+                                        <Text style={styles.resultBoxLabel}>🏆 Winner</Text>
+                                        <Text style={styles.resultBoxName}>{winnerName}</Text>
+                                        <Text style={styles.winnerPayout}>+{totalPot} mojo</Text>
+                                      </View>
+                                      <View style={styles.loserBox}>
+                                        <Text style={styles.resultBoxLabel}>🤡 Loser</Text>
+                                        <Text style={styles.resultBoxName}>{loserName}</Text>
+                                        <Text style={styles.loserLoss}>-{speculation.mojo_stake} mojo</Text>
+                                      </View>
+                                    </View>
+                                  </View>
+                                  {isUserInvolved && (
+                                    <View style={[styles.userResultBanner, didUserWin ? styles.userWinBanner : styles.userLossBanner]}>
+                                      <Text style={styles.userResultText}>
+                                        {didUserWin ? `You won ${totalPot} mojo! 🎉` : `You lost ${speculation.mojo_stake} mojo`}
+                                      </Text>
+                                    </View>
+                                  )}
+                                </View>
+                              </BlurView>
+                            </LinearGradient>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {pendingSpeculations.length === 0 && acceptedSpeculations.length === 0 && resolvedSpeculations.length === 0 && (
                     <View style={styles.emptyContainer}>
                       <Text style={styles.emptyText}>
                         No active speculations. Create a custom bet to get started!
@@ -962,6 +1035,94 @@ const styles = StyleSheet.create({
   },
   resolveOptionText: {
     fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  resultBadge: {
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginVertical: spacing.paddingSmall,
+  },
+  resultText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  resultsContainer: {
+    marginVertical: spacing.paddingSmall,
+    paddingTop: spacing.paddingSmall,
+    borderTopWidth: 1,
+    borderTopColor: colors.glassBorder,
+  },
+  winnerLoserRow: {
+    flexDirection: 'row',
+    gap: spacing.paddingMedium,
+    justifyContent: 'space-between',
+  },
+  winnerBox: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 12,
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingSmall,
+  },
+  loserBox: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 12,
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingSmall,
+  },
+  resultBoxLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  resultBoxName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  winnerPayout: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#10b981',
+  },
+  loserLoss: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#ef4444',
+  },
+  userResultBanner: {
+    marginTop: spacing.paddingSmall,
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingMedium,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  userWinBanner: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  userLossBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+  },
+  userResultText: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
   },
