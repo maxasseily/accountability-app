@@ -481,3 +481,57 @@ export async function getAcceptedSpeculationsForGroup(
     receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
+
+/**
+ * Get resolved speculation quests for a group (recently completed)
+ */
+export async function getResolvedSpeculationsForGroup(
+  groupId: string
+): Promise<ArenaQuestWithProfiles[]> {
+  // Get speculation quests that have been resolved
+  const { data: quests, error: questsError } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('quest_type', 'speculation')
+    .eq('status', 'resolved')
+    .order('updated_at', { ascending: false })
+    .limit(10); // Show last 10 resolved speculations
+
+  if (questsError) {
+    console.error('Error fetching resolved speculations:', questsError);
+    throw questsError;
+  }
+
+  if (!quests || quests.length === 0) {
+    return [];
+  }
+
+  // Get unique user IDs (sender, accepter, and resolver)
+  const userIds = [...new Set([
+    ...quests.map(q => q.sender_id),
+    ...quests.filter(q => q.speculation_accepter_id).map(q => q.speculation_accepter_id!),
+    ...quests.filter(q => q.speculation_resolver_id).map(q => q.speculation_resolver_id!)
+  ])];
+
+  // Fetch profiles for all users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of user ID to profile
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+  // Combine quests with profiles
+  return quests.map(quest => ({
+    ...quest,
+    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
+  })) as ArenaQuestWithProfiles[];
+}
