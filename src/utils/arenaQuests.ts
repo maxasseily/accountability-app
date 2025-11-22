@@ -179,6 +179,8 @@ export function formatQuestDisplay(quest: ArenaQuestWithProfiles): string {
       return `${senderName} is prophesying about ${receiverName} 🔮`;
     case 'curse':
       return `${senderName} has put a curse on ${receiverName} 💀`;
+    case 'speculation':
+      return `${senderName} and ${receiverName} are speculating: ${quest.speculation_description || 'Unknown speculation'}`;
     default:
       return `${senderName} and ${receiverName} are on a quest`;
   }
