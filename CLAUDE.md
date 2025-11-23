@@ -93,8 +93,9 @@ accountability-app/
 │   │   ├── frequency-selection.tsx       # Choose frequency (3x/week)
 │   │   └── goal-confirmation.tsx         # Confirm goal setup
 │   └── (app)/                # Protected app route group (tab-based navigation)
-│       ├── _layout.tsx       # Tab navigator with 4 tabs
+│       ├── _layout.tsx       # Tab navigator with 5 tabs
 │       ├── home.tsx          # Home screen with photo upload & goal progress
+│       ├── feed.tsx          # Feed screen showing group posts for current week
 │       ├── arena.tsx         # Quest system and gamification
 │       ├── statistics.tsx    # Personal stats & group leaderboard
 │       └── groups/           # Group management screens
@@ -143,6 +144,7 @@ accountability-app/
 │       ├── spacing.ts        # Spacing constants
 │       ├── validation.ts     # Form validation helpers
 │       ├── dailyPhoto.ts     # Photo upload/fetch logic
+│       ├── feed.ts           # Feed posts fetching and week logic
 │       ├── groups.ts         # Group creation/join logic
 │       └── arenaQuests.ts    # Quest logic
 ├── assets/                   # App icons, splash screens, fonts, images
@@ -200,6 +202,7 @@ This project uses **Expo Router** for file-based routing with **route groups**.
 
 **Protected App (tab-based navigation):**
 - `/(app)/home` - Home screen with daily photo upload and goal progress tracking
+- `/(app)/feed` - Feed screen showing group members' posts for the current week (Monday-based)
 - `/(app)/groups/` - Group management screens
   - `index` - View group members and their photos
   - `create` - Create new group with 6-digit join code
