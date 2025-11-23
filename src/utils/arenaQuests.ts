@@ -535,3 +535,53 @@ export async function getResolvedSpeculationsForGroup(
     receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
+
+/**
+ * Get completed (resolved) quests for a group (non-speculation quests)
+ */
+export async function getCompletedQuestsForGroup(
+  groupId: string
+): Promise<ArenaQuestWithProfiles[]> {
+  // Get quests that are resolved (excluding speculation which has its own function)
+  const { data: quests, error: questsError } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('status', 'resolved')
+    .neq('quest_type', 'speculation')
+    .order('updated_at', { ascending: false })
+    .limit(10); // Show last 10 completed quests
+
+  if (questsError) {
+    console.error('Error fetching completed quests:', questsError);
+    throw questsError;
+  }
+
+  if (!quests || quests.length === 0) {
+    return [];
+  }
+
+  // Get unique user IDs
+  const userIds = [...new Set([...quests.map(q => q.sender_id), ...quests.map(q => q.receiver_id)])];
+
+  // Fetch profiles for all users
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of user ID to profile
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+  // Combine quests with profiles
+  return quests.map(quest => ({
+    ...quest,
+    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.receiver_id) || { full_name: null, email: 'Unknown' },
+  })) as ArenaQuestWithProfiles[];
+}
