@@ -179,8 +179,20 @@ export function formatQuestDisplay(quest: ArenaQuestWithProfiles): string {
       return `${senderName} is prophesying about ${receiverName} 🔮`;
     case 'curse':
       return `${senderName} has put a curse on ${receiverName} 💀`;
-    case 'speculation':
-      return `${senderName} and ${receiverName} are speculating: ${quest.speculation_description || 'Unknown speculation'}`;
+    case 'speculation': {
+      const creatorSide = quest.speculation_creator_side ? 'FOR' : 'AGAINST';
+      const accepterName = quest.speculation_accepter_id ? receiverName : 'Pending';
+      const accepterSide = quest.speculation_creator_side ? 'AGAINST' : 'FOR';
+
+      if (quest.status === 'resolved') {
+        const result = quest.speculation_result ? 'YES' : 'NO';
+        return `🌀 "${quest.speculation_description}" - Result: ${result}`;
+      } else if (quest.status === 'accepted') {
+        return `🌀 ${senderName} (${creatorSide}) vs ${accepterName} (${accepterSide}): "${quest.speculation_description}"`;
+      } else {
+        return `🌀 ${senderName} (${creatorSide}): "${quest.speculation_description}"`;
+      }
+    }
     default:
       return `${senderName} and ${receiverName} are on a quest`;
   }
