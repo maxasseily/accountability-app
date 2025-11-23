@@ -85,6 +85,24 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="feed"
+        options={{
+          title: 'Feed',
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons
+              name={focused ? "view-grid" : "view-grid-outline"}
+              size={focused ? 26 : 24}
+              color={color}
+              style={{
+                textShadowColor: focused ? colors.accent : 'transparent',
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: focused ? 8 : 0,
+              }}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="groups"
         options={{
           title: 'Group',
