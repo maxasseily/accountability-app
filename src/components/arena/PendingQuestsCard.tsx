@@ -5,15 +5,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../utils/colors';
 import { spacing } from '../../utils/spacing';
 import type { ArenaQuestWithProfiles } from '../../types/arena';
-import { getPendingQuestsForUser, respondToArenaQuest } from '../../utils/arenaQuests';
+import { getPendingQuestsForUser, getPendingSpeculationsForGroup, respondToArenaQuest, acceptSpeculationQuest } from '../../utils/arenaQuests';
 
 interface PendingQuestsCardProps {
+  groupId: string;
   currentUserId: string;
   refreshToken: number;
   onRefresh: () => void;
 }
 
-export default function PendingQuestsCard({ currentUserId, refreshToken, onRefresh }: PendingQuestsCardProps) {
+export default function PendingQuestsCard({ groupId, currentUserId, refreshToken, onRefresh }: PendingQuestsCardProps) {
   const [requests, setRequests] = useState<ArenaQuestWithProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [respondingToId, setRespondingToId] = useState<string | null>(null);
@@ -21,26 +22,38 @@ export default function PendingQuestsCard({ currentUserId, refreshToken, onRefre
   const loadRequests = useCallback(async () => {
     try {
       setIsLoading(true);
-      const pendingRequests = await getPendingQuestsForUser(currentUserId);
-      setRequests(pendingRequests);
+      const [pendingRequests, pendingSpeculations] = await Promise.all([
+        getPendingQuestsForUser(currentUserId),
+        getPendingSpeculationsForGroup(groupId),
+      ]);
+      // Combine pending quests and speculations
+      setRequests([...pendingRequests, ...pendingSpeculations]);
     } catch (error) {
       console.error('Error loading pending quests:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, groupId]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests, refreshToken]);
 
-  const handleRespond = async (questId: string, accept: boolean) => {
+  const handleRespond = async (request: ArenaQuestWithProfiles, accept: boolean) => {
     try {
-      setRespondingToId(questId);
-      await respondToArenaQuest(questId, accept);
+      setRespondingToId(request.id);
+
+      // Handle speculation acceptance differently (only accept, can't reject)
+      if (request.quest_type === 'speculation') {
+        if (accept) {
+          await acceptSpeculationQuest(request.id);
+        }
+      } else {
+        await respondToArenaQuest(request.id, accept);
+      }
 
       // Remove the request from the list
-      setRequests((prev) => prev.filter((req) => req.id !== questId));
+      setRequests((prev) => prev.filter((req) => req.id !== request.id));
 
       // Refresh parent to update quests list if accepted
       onRefresh();
@@ -61,12 +74,28 @@ export default function PendingQuestsCard({ currentUserId, refreshToken, onRefre
         return '🔮';
       case 'curse':
         return '💀';
+      case 'speculation':
+        return '🌀';
       default:
         return '❓';
     }
   };
 
   const getRequestText = (request: ArenaQuestWithProfiles, isSender: boolean) => {
+    // Speculation is special - sender is always the creator waiting for anyone to accept
+    if (request.quest_type === 'speculation') {
+      const senderName =
+        request.sender_profile.full_name ||
+        request.sender_profile.email.split('@')[0];
+
+      if (isSender) {
+        return `Waiting for someone to accept: "${request.speculation_description}"`;
+      } else {
+        const sideLabel = request.speculation_creator_side ? 'FOR' : 'AGAINST';
+        return `${senderName} (${sideLabel}): "${request.speculation_description}"`;
+      }
+    }
+
     if (isSender) {
       // Sent request - show who we're waiting for
       const receiverName =
@@ -134,21 +163,23 @@ export default function PendingQuestsCard({ currentUserId, refreshToken, onRefre
 
                     {!isSender && (
                       <View style={styles.requestActions}>
-                        <TouchableOpacity
-                          style={[styles.actionButton, styles.rejectButton]}
-                          onPress={() => handleRespond(request.id, false)}
-                          disabled={respondingToId === request.id}
-                          activeOpacity={0.7}
-                        >
-                          {respondingToId === request.id ? (
-                            <ActivityIndicator size="small" color={colors.textSecondary} />
-                          ) : (
-                            <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
-                          )}
-                        </TouchableOpacity>
+                        {request.quest_type !== 'speculation' && (
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.rejectButton]}
+                            onPress={() => handleRespond(request, false)}
+                            disabled={respondingToId === request.id}
+                            activeOpacity={0.7}
+                          >
+                            {respondingToId === request.id ? (
+                              <ActivityIndicator size="small" color={colors.textSecondary} />
+                            ) : (
+                              <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
+                            )}
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           style={[styles.actionButton, styles.acceptButton]}
-                          onPress={() => handleRespond(request.id, true)}
+                          onPress={() => handleRespond(request, true)}
                           disabled={respondingToId === request.id}
                           activeOpacity={0.7}
                         >

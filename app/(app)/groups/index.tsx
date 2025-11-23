@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Modal, Pressable, TextInput, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Modal, Pressable, TextInput, TouchableOpacity, Text, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -212,7 +212,13 @@ export default function GroupsScreen() {
   };
 
   const handleCreateSpeculation = async () => {
-    if (!user || !group || !speculationDescription.trim() || !speculationOdds || !speculationMojoStake || speculationCreatorSide === null) {
+    const trimmedDescription = speculationDescription.trim();
+
+    // Validation
+    if (!user || !group || !trimmedDescription || trimmedDescription.length < 5 || !speculationOdds || !speculationMojoStake || speculationCreatorSide === null) {
+      if (trimmedDescription && trimmedDescription.length < 5) {
+        Alert.alert('Invalid Description', 'Speculation description must be at least 5 characters long.');
+      }
       return;
     }
 
@@ -221,7 +227,7 @@ export default function GroupsScreen() {
       const { createSpeculationQuest } = await import('../../../src/utils/arenaQuests');
       await createSpeculationQuest(
         group.id,
-        speculationDescription.trim(),
+        trimmedDescription,
         speculationCreatorSide,
         parseFloat(speculationOdds),
         parseInt(speculationMojoStake)
@@ -330,10 +336,13 @@ export default function GroupsScreen() {
 
             <OngoingQuestsCard
               groupId={group.id}
+              currentUserId={user.id}
               refreshToken={refreshToken}
+              onRefresh={handleRefresh}
             />
 
             <PendingQuestsCard
+              groupId={group.id}
               currentUserId={user.id}
               refreshToken={refreshToken}
               onRefresh={handleRefresh}
@@ -341,6 +350,7 @@ export default function GroupsScreen() {
 
             <CompletedQuestsCard
               groupId={group.id}
+              currentUserId={user.id}
               refreshToken={refreshToken}
             />
 
@@ -419,63 +429,65 @@ export default function GroupsScreen() {
                         )}
 
                         {isProphecyOrCurse && !existingQuest && !warningMessage && (
-                          <View style={styles.mojoStakeContainer}>
-                            {isLoadingStats ? (
-                              <ActivityIndicator size="small" color={colors.accent} />
-                            ) : (
-                              <>
-                                <Text style={styles.mojoStakeLabel}>
-                                  Available Mojo: {Math.floor(availableMojo)}
-                                  {pendingMojoStakes > 0 && (
-                                    <Text style={styles.pendingStakesText}> ({Math.floor(pendingMojoStakes)} staked)</Text>
-                                  )}
-                                </Text>
-                                <Text style={styles.credibilityLabel}>
-                                  {pendingMemberName}'s Credibility: {memberCredibility}
-                                </Text>
-
-                                <View style={styles.inputContainer}>
-                                  <Text style={styles.inputLabel}>Mojo Stake</Text>
-                                  <TextInput
-                                    style={styles.mojoInput}
-                                    value={mojoStake}
-                                    onChangeText={setMojoStake}
-                                    placeholder="0"
-                                    placeholderTextColor={colors.textSecondary}
-                                    keyboardType="number-pad"
-                                    maxLength={10}
-                                  />
-                                </View>
-
-                                {stake > 0 && (
-                                  <View style={styles.bettingInfo}>
-                                    <View style={styles.bettingRow}>
-                                      <Text style={styles.bettingLabel}>Odds:</Text>
-                                      <Text style={styles.bettingValue}>{odds.toFixed(2)}x</Text>
-                                    </View>
-                                    <View style={styles.bettingRow}>
-                                      <Text style={styles.bettingLabel}>Potential Profit:</Text>
-                                      <Text style={[styles.bettingValue, styles.winValue]}>
-                                        +{potentialWinnings} mojo
-                                      </Text>
-                                    </View>
-                                    <View style={styles.bettingRow}>
-                                      <Text style={styles.bettingLabel}>Potential Loss:</Text>
-                                      <Text style={[styles.bettingValue, styles.lossValue]}>
-                                        -{stake} mojo
-                                      </Text>
-                                    </View>
-                                  </View>
-                                )}
-
-                                {stake > availableMojo && (
-                                  <Text style={styles.errorText}>
-                                    Insufficient mojo! (Available: {Math.floor(availableMojo)})
+                          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                            <View style={styles.mojoStakeContainer}>
+                              {isLoadingStats ? (
+                                <ActivityIndicator size="small" color={colors.accent} />
+                              ) : (
+                                <>
+                                  <Text style={styles.mojoStakeLabel}>
+                                    Available Mojo: {Math.floor(availableMojo)}
+                                    {pendingMojoStakes > 0 && (
+                                      <Text style={styles.pendingStakesText}> ({Math.floor(pendingMojoStakes)} staked)</Text>
+                                    )}
                                   </Text>
-                                )}
-                              </>
-                            )}
-                          </View>
+                                  <Text style={styles.credibilityLabel}>
+                                    {pendingMemberName}'s Credibility: {memberCredibility}
+                                  </Text>
+
+                                  <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>Mojo Stake</Text>
+                                    <TextInput
+                                      style={styles.mojoInput}
+                                      value={mojoStake}
+                                      onChangeText={setMojoStake}
+                                      placeholder="0"
+                                      placeholderTextColor={colors.textSecondary}
+                                      keyboardType="number-pad"
+                                      maxLength={10}
+                                    />
+                                  </View>
+
+                                  {stake > 0 && (
+                                    <View style={styles.bettingInfo}>
+                                      <View style={styles.bettingRow}>
+                                        <Text style={styles.bettingLabel}>Odds:</Text>
+                                        <Text style={styles.bettingValue}>{odds.toFixed(2)}x</Text>
+                                      </View>
+                                      <View style={styles.bettingRow}>
+                                        <Text style={styles.bettingLabel}>Potential Profit:</Text>
+                                        <Text style={[styles.bettingValue, styles.winValue]}>
+                                          +{potentialWinnings} mojo
+                                        </Text>
+                                      </View>
+                                      <View style={styles.bettingRow}>
+                                        <Text style={styles.bettingLabel}>Potential Loss:</Text>
+                                        <Text style={[styles.bettingValue, styles.lossValue]}>
+                                          -{stake} mojo
+                                        </Text>
+                                      </View>
+                                    </View>
+                                  )}
+
+                                  {stake > availableMojo && (
+                                    <Text style={styles.errorText}>
+                                      Insufficient mojo! (Available: {Math.floor(availableMojo)})
+                                    </Text>
+                                  )}
+                                </>
+                              )}
+                            </View>
+                          </TouchableWithoutFeedback>
                         )}
 
                         <View style={styles.confirmButtons}>
@@ -506,8 +518,8 @@ export default function GroupsScreen() {
                             ) : (
                               <Text style={styles.sendButtonText}>
                                 {selectedAction.id === 'prophecy' ? 'Deliver Prophecy' :
-                                 selectedAction.id === 'curse' ? 'Deliver Curse' :
-                                 'Send Request'}
+                                  selectedAction.id === 'curse' ? 'Deliver Curse' :
+                                    'Send Request'}
                               </Text>
                             )}
                           </TouchableOpacity>
@@ -533,144 +545,151 @@ export default function GroupsScreen() {
           <Pressable style={styles.modalOverlay} onPress={handleCloseSpeculationModal}>
             <Pressable style={styles.speculationCreateModalContent} onPress={(e) => e.stopPropagation()}>
               <BlurView intensity={40} tint="dark" style={styles.speculationCreateModalBlur}>
-                <ScrollView
-                  style={styles.speculationCreateModalScroll}
-                  contentContainerStyle={styles.speculationCreateModalInner}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <Text style={styles.confirmIcon}>🌀</Text>
-                  <Text style={styles.confirmTitle}>Create Speculation</Text>
-                  <Text style={styles.confirmDescription}>Make a custom bet with your group</Text>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                  <ScrollView
+                    style={styles.speculationCreateModalScroll}
+                    contentContainerStyle={styles.speculationCreateModalInner}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text style={styles.confirmIcon}>🌀</Text>
+                    <Text style={styles.confirmTitle}>Create Speculation</Text>
+                    <Text style={styles.confirmDescription}>Make a custom bet with your group</Text>
 
-                  {/* Description Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>What are you betting on?</Text>
-                    <TextInput
-                      style={styles.speculationDescriptionInput}
-                      value={speculationDescription}
-                      onChangeText={setSpeculationDescription}
-                      placeholder="e.g., Bob won't score a goal in his next five games!"
-                      placeholderTextColor={colors.textSecondary}
-                      multiline
-                      maxLength={200}
-                    />
-                    <Text style={styles.charCount}>{speculationDescription.length}/200</Text>
-                  </View>
+                    {/* Description Input */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>What are you betting on?</Text>
+                      <TextInput
+                        style={styles.speculationDescriptionInput}
+                        value={speculationDescription}
+                        onChangeText={setSpeculationDescription}
+                        placeholder="e.g., Bob won't score a goal in his next five games!"
+                        placeholderTextColor={colors.textSecondary}
+                        multiline
+                        maxLength={200}
+                      />
+                      <View style={styles.charCountRow}>
+                        <Text style={styles.charCount}>{speculationDescription.length}/200</Text>
+                        {speculationDescription.length > 0 && speculationDescription.length < 5 && (
+                          <Text style={styles.inputError}>Must be at least 5 characters</Text>
+                        )}
+                      </View>
+                    </View>
 
-                  {/* Creator Side Selection */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Which side are you on?</Text>
-                    <View style={styles.sideButtonsRow}>
+                    {/* Creator Side Selection */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Which side are you on?</Text>
+                      <View style={styles.sideButtonsRow}>
+                        <TouchableOpacity
+                          style={[styles.sideButton, speculationCreatorSide === true && styles.sideButtonSelected]}
+                          onPress={() => setSpeculationCreatorSide(true)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.sideButtonText, speculationCreatorSide === true && styles.sideButtonTextSelected]}>
+                            FOR
+                          </Text>
+                          <Text style={styles.sideButtonSubtext}>It will happen</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.sideButton, speculationCreatorSide === false && styles.sideButtonSelected]}
+                          onPress={() => setSpeculationCreatorSide(false)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.sideButtonText, speculationCreatorSide === false && styles.sideButtonTextSelected]}>
+                            AGAINST
+                          </Text>
+                          <Text style={styles.sideButtonSubtext}>It won't happen</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Odds Input */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Odds (multiplier)</Text>
+                      <TextInput
+                        style={styles.mojoInput}
+                        value={speculationOdds}
+                        onChangeText={setSpeculationOdds}
+                        placeholder="e.g., 2.5"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="decimal-pad"
+                      />
+                      <Text style={styles.inputHint}>Higher odds = higher payout if you win</Text>
+                    </View>
+
+                    {/* Mojo Stake Input */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>
+                        Mojo Stake {isLoadingSpeculationMojo ? '(Loading...)' : `(Available: ${Math.floor(userMojo)})`}
+                      </Text>
+                      <TextInput
+                        style={styles.mojoInput}
+                        value={speculationMojoStake}
+                        onChangeText={setSpeculationMojoStake}
+                        placeholder="0"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="number-pad"
+                        editable={!isLoadingSpeculationMojo}
+                      />
+                    </View>
+
+                    {/* Potential Payout */}
+                    {(() => {
+                      const stake = parseInt(speculationMojoStake) || 0;
+                      const odds = parseFloat(speculationOdds) || 0;
+                      const isValidStake = stake > 0 && stake <= userMojo;
+                      const isValidOdds = odds > 0;
+                      const potentialProfit = isValidStake && isValidOdds ? Math.round(stake * odds) : 0;
+
+                      return isValidStake && isValidOdds ? (
+                        <View style={styles.payoutInfo}>
+                          <Text style={styles.bettingLabel}>Potential Profit:</Text>
+                          <Text style={styles.payoutValue}>+{potentialProfit} mojo</Text>
+                        </View>
+                      ) : null;
+                    })()}
+
+                    <View style={styles.confirmButtons}>
                       <TouchableOpacity
-                        style={[styles.sideButton, speculationCreatorSide === true && styles.sideButtonSelected]}
-                        onPress={() => setSpeculationCreatorSide(true)}
+                        style={[styles.confirmButton, styles.cancelButton]}
+                        onPress={handleCloseSpeculationModal}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.sideButtonText, speculationCreatorSide === true && styles.sideButtonTextSelected]}>
-                          FOR
-                        </Text>
-                        <Text style={styles.sideButtonSubtext}>It will happen</Text>
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.sideButton, speculationCreatorSide === false && styles.sideButtonSelected]}
-                        onPress={() => setSpeculationCreatorSide(false)}
+                        style={[
+                          styles.confirmButton,
+                          styles.sendButton,
+                          (speculationDescription.trim().length < 5 ||
+                            !speculationOdds ||
+                            !speculationMojoStake ||
+                            speculationCreatorSide === null ||
+                            parseInt(speculationMojoStake) <= 0 ||
+                            parseInt(speculationMojoStake) > userMojo ||
+                            parseFloat(speculationOdds) <= 0) && styles.sendButtonDisabled
+                        ]}
+                        onPress={handleCreateSpeculation}
+                        disabled={
+                          isCreatingSpeculation ||
+                          speculationDescription.trim().length < 5 ||
+                          !speculationOdds ||
+                          !speculationMojoStake ||
+                          speculationCreatorSide === null ||
+                          parseInt(speculationMojoStake) <= 0 ||
+                          parseInt(speculationMojoStake) > userMojo ||
+                          parseFloat(speculationOdds) <= 0
+                        }
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.sideButtonText, speculationCreatorSide === false && styles.sideButtonTextSelected]}>
-                          AGAINST
-                        </Text>
-                        <Text style={styles.sideButtonSubtext}>It won't happen</Text>
+                        {isCreatingSpeculation ? (
+                          <ActivityIndicator size="small" color={colors.backgroundStart} />
+                        ) : (
+                          <Text style={styles.sendButtonText}>Create</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
-                  </View>
-
-                  {/* Odds Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Odds (multiplier)</Text>
-                    <TextInput
-                      style={styles.mojoInput}
-                      value={speculationOdds}
-                      onChangeText={setSpeculationOdds}
-                      placeholder="e.g., 2.5"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                    />
-                    <Text style={styles.inputHint}>Higher odds = higher payout if you win</Text>
-                  </View>
-
-                  {/* Mojo Stake Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>
-                      Mojo Stake {isLoadingSpeculationMojo ? '(Loading...)' : `(Available: ${Math.floor(userMojo)})`}
-                    </Text>
-                    <TextInput
-                      style={styles.mojoInput}
-                      value={speculationMojoStake}
-                      onChangeText={setSpeculationMojoStake}
-                      placeholder="0"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="number-pad"
-                      editable={!isLoadingSpeculationMojo}
-                    />
-                  </View>
-
-                  {/* Potential Payout */}
-                  {(() => {
-                    const stake = parseInt(speculationMojoStake) || 0;
-                    const odds = parseFloat(speculationOdds) || 0;
-                    const isValidStake = stake > 0 && stake <= userMojo;
-                    const isValidOdds = odds > 0;
-                    const potentialProfit = isValidStake && isValidOdds ? Math.round(stake * odds) : 0;
-
-                    return isValidStake && isValidOdds ? (
-                      <View style={styles.payoutInfo}>
-                        <Text style={styles.bettingLabel}>Potential Profit:</Text>
-                        <Text style={styles.payoutValue}>+{potentialProfit} mojo</Text>
-                      </View>
-                    ) : null;
-                  })()}
-
-                  <View style={styles.confirmButtons}>
-                    <TouchableOpacity
-                      style={[styles.confirmButton, styles.cancelButton]}
-                      onPress={handleCloseSpeculationModal}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.confirmButton,
-                        styles.sendButton,
-                        (!speculationDescription.trim() ||
-                         !speculationOdds ||
-                         !speculationMojoStake ||
-                         speculationCreatorSide === null ||
-                         parseInt(speculationMojoStake) <= 0 ||
-                         parseInt(speculationMojoStake) > userMojo ||
-                         parseFloat(speculationOdds) <= 0) && styles.sendButtonDisabled
-                      ]}
-                      onPress={handleCreateSpeculation}
-                      disabled={
-                        isCreatingSpeculation ||
-                        !speculationDescription.trim() ||
-                        !speculationOdds ||
-                        !speculationMojoStake ||
-                        speculationCreatorSide === null ||
-                        parseInt(speculationMojoStake) <= 0 ||
-                        parseInt(speculationMojoStake) > userMojo ||
-                        parseFloat(speculationOdds) <= 0
-                      }
-                      activeOpacity={0.7}
-                    >
-                      {isCreatingSpeculation ? (
-                        <ActivityIndicator size="small" color={colors.backgroundStart} />
-                      ) : (
-                        <Text style={styles.sendButtonText}>Create</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
+                  </ScrollView>
+                </TouchableWithoutFeedback>
               </BlurView>
             </Pressable>
           </Pressable>
@@ -910,11 +929,20 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  charCountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.paddingXs,
+  },
   charCount: {
     fontSize: 11,
     color: colors.textMuted,
-    textAlign: 'right',
-    marginTop: spacing.paddingXs,
+  },
+  inputError: {
+    fontSize: 11,
+    color: '#ef4444',
+    fontWeight: '600',
   },
   sideButtonsRow: {
     flexDirection: 'row',
