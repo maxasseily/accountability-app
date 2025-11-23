@@ -1,11 +1,11 @@
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import { colors } from '../../utils/colors';
 import { spacing } from '../../utils/spacing';
 import type { ArenaQuestWithProfiles, QuestType } from '../../types/arena';
-import { getAcceptedQuestsForGroup, formatQuestDisplay } from '../../utils/arenaQuests';
+import { getAcceptedQuestsForGroup, getAcceptedSpeculationsForGroup, formatQuestDisplay, resolveSpeculationQuest } from '../../utils/arenaQuests';
 
 // Gradient colors for each quest type
 const QUEST_GRADIENTS: Record<QuestType, string[]> = {
@@ -18,18 +18,27 @@ const QUEST_GRADIENTS: Record<QuestType, string[]> = {
 
 interface OngoingQuestsCardProps {
   groupId: string;
+  currentUserId: string;
   refreshToken: number;
+  onRefresh: () => void;
 }
 
-export default function OngoingQuestsCard({ groupId, refreshToken }: OngoingQuestsCardProps) {
+export default function OngoingQuestsCard({ groupId, currentUserId, refreshToken, onRefresh }: OngoingQuestsCardProps) {
   const [quests, setQuests] = useState<ArenaQuestWithProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSpeculation, setSelectedSpeculation] = useState<ArenaQuestWithProfiles | null>(null);
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
   const loadQuests = useCallback(async () => {
     try {
       setIsLoading(true);
-      const acceptedQuests = await getAcceptedQuestsForGroup(groupId);
-      setQuests(acceptedQuests);
+      const [acceptedQuests, acceptedSpeculations] = await Promise.all([
+        getAcceptedQuestsForGroup(groupId),
+        getAcceptedSpeculationsForGroup(groupId),
+      ]);
+      // Combine quests and speculations
+      setQuests([...acceptedQuests, ...acceptedSpeculations]);
     } catch (error) {
       console.error('Error loading ongoing quests:', error);
     } finally {
@@ -40,6 +49,38 @@ export default function OngoingQuestsCard({ groupId, refreshToken }: OngoingQues
   useEffect(() => {
     loadQuests();
   }, [loadQuests, refreshToken]);
+
+  const handleOpenResolveModal = (speculation: ArenaQuestWithProfiles) => {
+    setSelectedSpeculation(speculation);
+    setShowResolveModal(true);
+  };
+
+  const handleCloseResolveModal = () => {
+    setShowResolveModal(false);
+    setSelectedSpeculation(null);
+  };
+
+  const handleResolveSpeculation = async (result: boolean) => {
+    if (!selectedSpeculation) return;
+
+    try {
+      setIsResolving(true);
+      await resolveSpeculationQuest(selectedSpeculation.id, result);
+      handleCloseResolveModal();
+      loadQuests();
+      onRefresh();
+    } catch (error) {
+      console.error('Error resolving speculation:', error);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const canResolveSpeculation = (quest: ArenaQuestWithProfiles): boolean => {
+    if (quest.quest_type !== 'speculation') return false;
+    // User must not be a participant
+    return currentUserId !== quest.sender_id && currentUserId !== quest.speculation_accepter_id;
+  };
 
   return (
     <View style={styles.container}>
@@ -56,28 +97,93 @@ export default function OngoingQuestsCard({ groupId, refreshToken }: OngoingQues
             </View>
           ) : (
             <View style={styles.questsList}>
-              {quests.map((quest) => (
-                <View key={quest.id} style={styles.questItemWrapper}>
-                  <LinearGradient
-                    colors={QUEST_GRADIENTS[quest.quest_type] as any}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.questGradient}
-                  >
-                    <BlurView intensity={10} tint="dark" style={styles.questBlur}>
-                      <View style={styles.questItem}>
-                        <Text style={styles.questText}>
-                          {formatQuestDisplay(quest)}
-                        </Text>
-                      </View>
-                    </BlurView>
-                  </LinearGradient>
-                </View>
-              ))}
+              {quests.map((quest) => {
+                const canResolve = canResolveSpeculation(quest);
+                return (
+                  <View key={quest.id} style={styles.questItemWrapper}>
+                    <LinearGradient
+                      colors={QUEST_GRADIENTS[quest.quest_type] as any}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.questGradient}
+                    >
+                      <BlurView intensity={10} tint="dark" style={styles.questBlur}>
+                        <View style={styles.questItem}>
+                          <Text style={styles.questText}>
+                            {formatQuestDisplay(quest)}
+                          </Text>
+                          {canResolve && (
+                            <TouchableOpacity
+                              style={styles.resolveButton}
+                              onPress={() => handleOpenResolveModal(quest)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.resolveButtonText}>Resolve</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </BlurView>
+                    </LinearGradient>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
       </BlurView>
+
+      {/* Resolve Speculation Modal */}
+      <Modal
+        visible={showResolveModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseResolveModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseResolveModal}>
+          <Pressable style={styles.resolveModalContent} onPress={(e) => e.stopPropagation()}>
+            <BlurView intensity={40} tint="dark" style={styles.resolveModalBlur}>
+              <View style={styles.resolveModalInner}>
+                <Text style={styles.modalIcon}>⚖️</Text>
+                <Text style={styles.modalTitle}>Resolve Speculation</Text>
+                {selectedSpeculation && (
+                  <>
+                    <Text style={styles.resolveDescription}>
+                      "{selectedSpeculation.speculation_description}"
+                    </Text>
+                    <Text style={styles.resolveQuestion}>Did this happen?</Text>
+                    <View style={styles.resolveButtons}>
+                      <TouchableOpacity
+                        style={[styles.resolveOptionButton, styles.resolveYesButton]}
+                        onPress={() => handleResolveSpeculation(true)}
+                        disabled={isResolving}
+                        activeOpacity={0.7}
+                      >
+                        {isResolving ? (
+                          <ActivityIndicator size="small" color={colors.textPrimary} />
+                        ) : (
+                          <Text style={styles.resolveOptionText}>Yes</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.resolveOptionButton, styles.resolveNoButton]}
+                        onPress={() => handleResolveSpeculation(false)}
+                        disabled={isResolving}
+                        activeOpacity={0.7}
+                      >
+                        {isResolving ? (
+                          <ActivityIndicator size="small" color={colors.textPrimary} />
+                        ) : (
+                          <Text style={styles.resolveOptionText}>No</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            </BlurView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -145,6 +251,100 @@ const styles = StyleSheet.create({
   questText: {
     fontSize: 15,
     fontWeight: '600',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  resolveButton: {
+    backgroundColor: '#DAA520',
+    paddingVertical: spacing.paddingSmall,
+    paddingHorizontal: spacing.paddingMedium,
+    borderRadius: 8,
+    marginTop: spacing.paddingSmall,
+    alignItems: 'center',
+  },
+  resolveButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.backgroundStart,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resolveModalContent: {
+    width: '85%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  resolveModalBlur: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+  },
+  resolveModalInner: {
+    backgroundColor: colors.glassLight,
+    padding: spacing.paddingXl,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    fontSize: 64,
+    marginBottom: spacing.paddingMedium,
+    textAlign: 'center',
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingXs,
+    textShadowColor: colors.accentGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  resolveDescription: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: spacing.paddingLarge,
+  },
+  resolveQuestion: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.paddingLarge,
+  },
+  resolveButtons: {
+    flexDirection: 'row',
+    gap: spacing.paddingMedium,
+    width: '100%',
+  },
+  resolveOptionButton: {
+    flex: 1,
+    paddingVertical: spacing.paddingLarge,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resolveYesButton: {
+    backgroundColor: '#10b981',
+    borderWidth: 1,
+    borderColor: '#10b981',
+  },
+  resolveNoButton: {
+    backgroundColor: '#ef4444',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  resolveOptionText: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
 });
