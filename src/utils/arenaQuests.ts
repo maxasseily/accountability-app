@@ -120,10 +120,12 @@ export async function getPendingQuestsForUser(
   userId: string
 ): Promise<ArenaQuestWithProfiles[]> {
   // Get quests where user is either sender or receiver
+  // Exclude speculation quests as they are fetched separately via getPendingSpeculationsForGroup
   const { data: quests, error: questsError } = await supabase
     .from('arena_quests')
     .select('*')
     .eq('status', 'pending')
+    .neq('quest_type', 'speculation')
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .order('created_at', { ascending: false });
 

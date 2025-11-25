@@ -93,13 +93,12 @@ accountability-app/
 │   │   ├── frequency-selection.tsx       # Choose frequency (3x/week)
 │   │   └── goal-confirmation.tsx         # Confirm goal setup
 │   └── (app)/                # Protected app route group (tab-based navigation)
-│       ├── _layout.tsx       # Tab navigator with 5 tabs
+│       ├── _layout.tsx       # Tab navigator with 4 tabs
 │       ├── home.tsx          # Home screen with photo upload & goal progress
 │       ├── feed.tsx          # Feed screen showing group posts for current week
-│       ├── arena.tsx         # Quest system and gamification
 │       ├── statistics.tsx    # Personal stats & group leaderboard
 │       └── groups/           # Group management screens
-│           ├── index.tsx     # Groups overview (view members)
+│           ├── index.tsx     # Groups overview with members & arena quests
 │           ├── create.tsx    # Create new group
 │           ├── join.tsx      # Join existing group
 │           └── chat.tsx      # Group chat screen
@@ -200,15 +199,14 @@ This project uses **Expo Router** for file-based routing with **route groups**.
 - `/(onboarding)/frequency-selection` - Choose frequency (currently only 3x/week)
 - `/(onboarding)/goal-confirmation` - Confirm and finalize goal setup
 
-**Protected App (tab-based navigation):**
+**Protected App (tab-based navigation with 4 tabs):**
 - `/(app)/home` - Home screen with daily photo upload and goal progress tracking
 - `/(app)/feed` - Feed screen showing group members' posts for the current week (Monday-based)
-- `/(app)/groups/` - Group management screens
-  - `index` - View group members and their photos
+- `/(app)/groups/` - Group management screens with arena quest functionality
+  - `index` - View group members, their photos, and arena quests (alliance, battle, prophecy, curse, speculation)
   - `create` - Create new group with 6-digit join code
   - `join` - Join existing group
   - `chat` - Group chat with real-time messaging
-- `/(app)/arena` - Quest system with competitive and collaborative challenges
 - `/(app)/statistics` - Personal stats dashboard and group leaderboard
 
 ### Route Groups
