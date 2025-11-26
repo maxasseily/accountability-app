@@ -22,7 +22,6 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
-  rank: string | null;
 }
 
 export interface GroupMemberWithProfile extends GroupMember {
