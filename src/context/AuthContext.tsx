@@ -6,7 +6,6 @@ interface Profile {
   id: string;
   email: string;
   full_name: string | null;
-  rank: string | null;
   avatar_url: string | null;
 }
 
@@ -14,7 +13,6 @@ interface User {
   id: string;
   email: string;
   name: string;
-  rank: string;
 }
 
 interface AuthContextType {
@@ -116,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, rank')
+        .select('full_name')
         .eq('id', supabaseUser.id)
         .single();
 
@@ -127,7 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: supabaseUser.id,
           email: supabaseUser.email || '',
           name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
-          rank: 'Noob',
         });
         return;
       }
@@ -136,7 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
         name: profile?.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
-        rank: profile?.rank || 'Noob',
       });
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -145,7 +141,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
         name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
-        rank: 'Noob',
       });
     }
   };

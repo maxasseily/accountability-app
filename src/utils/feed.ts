@@ -6,7 +6,6 @@ export interface FeedPost extends DailyPhoto {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
-    rank: string | null;
   };
 }
 
@@ -92,7 +91,7 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
     const userIds = [...new Set(photos.map(p => p.user_id))];
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, rank')
+      .select('id, full_name, avatar_url')
       .in('id', userIds);
 
     if (profilesError) {
@@ -109,7 +108,6 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
         id: photo.user_id,
         full_name: null,
         avatar_url: null,
-        rank: null,
       },
     }));
 
