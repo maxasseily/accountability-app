@@ -14,6 +14,8 @@ import { spacing } from '../../src/utils/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { RANK_LADDER, getUserRank, isInWarningZone, getMinCredibilityToMaintainRank } from '../../src/types/ranks';
+import { upgradeUserRank, checkCanUpgradeRank } from '../../src/lib/ranks';
 import type { UserStatistics } from '../../src/types/statistics';
 
 // Generate fake credibility data for different time periods
@@ -98,6 +100,7 @@ const MAX_GROUP_SIZE = 6;
 
 type TimePeriod = 'week' | 'month' | 'sixMonth';
 type ViewMode = 'personal' | 'group';
+type PersonalTab = 'data' | 'rank' | 'badges';
 
 // Helper function to get current status
 const getCurrentStatus = (score: number) => {
@@ -274,6 +277,232 @@ const CredibilityLineChart = ({ data, period }: { data: any[]; period: TimePerio
   );
 };
 
+// Rank Ladder View Component
+const RankLadderView = ({
+  statistics,
+  isLoading,
+  onRankUpgrade,
+}: {
+  statistics: UserStatistics | null;
+  isLoading: boolean;
+  onRankUpgrade: () => void;
+}) => {
+  const { user } = useAuth();
+  const [upgradingToRank, setUpgradingToRank] = useState<number | null>(null);
+  const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  if (isLoading || !statistics) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
+  }
+
+  const currentRank = getUserRank(statistics.userRank);
+  const userCredibility = statistics.credibility;
+  const userMojo = statistics.mojo;
+  const inWarning = isInWarningZone(statistics.userRank, userCredibility);
+  const minToMaintain = getMinCredibilityToMaintainRank(statistics.userRank);
+
+  const handleUpgradePress = (rankId: number) => {
+    setUpgradingToRank(rankId);
+    setShowUpgradeConfirm(true);
+    setUpgradeError(null);
+  };
+
+  const handleConfirmUpgrade = async () => {
+    if (!user || !upgradingToRank) return;
+
+    setShowUpgradeConfirm(false);
+
+    try {
+      const result = await upgradeUserRank(user.id, upgradingToRank);
+
+      if (result.success) {
+        // Refresh statistics
+        onRankUpgrade();
+        setUpgradingToRank(null);
+      } else {
+        setUpgradeError(result.errorMessage || 'Failed to upgrade rank');
+      }
+    } catch (error) {
+      setUpgradeError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  return (
+    <View>
+      {/* Warning Banner */}
+      {inWarning && (
+        <View style={styles.warningBanner}>
+          <MaterialCommunityIcons name="alert" size={24} color={colors.warning} />
+          <Text style={styles.warningText}>
+            Warning! Your credibility is below {currentRank.minCredibility}. If it drops below {minToMaintain}, you will be demoted and will need to repurchase this rank with mojo.
+          </Text>
+        </View>
+      )}
+
+      {/* Current Rank Display */}
+      <View style={styles.currentRankCard}>
+        <Text style={styles.currentRankLabel}>Your Current Rank</Text>
+        <View style={styles.currentRankDisplay}>
+          <MaterialCommunityIcons name={currentRank.icon as any} size={48} color={currentRank.color} />
+          <Text style={[styles.currentRankName, { color: currentRank.color }]}>{currentRank.name}</Text>
+        </View>
+        <View style={styles.currentRankStats}>
+          <View style={styles.rankStatItem}>
+            <Text style={styles.rankStatLabel}>Credibility</Text>
+            <Text style={styles.rankStatValue}>{userCredibility}</Text>
+          </View>
+          <View style={styles.rankStatItem}>
+            <Text style={styles.rankStatLabel}>Mojo</Text>
+            <Text style={styles.rankStatValue}>{formatMojo(userMojo)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Error Message */}
+      {upgradeError && (
+        <View style={styles.errorBanner}>
+          <MaterialCommunityIcons name="alert-circle" size={24} color={colors.error} />
+          <Text style={styles.errorText}>{upgradeError}</Text>
+        </View>
+      )}
+
+      {/* Rank Ladder */}
+      <Text style={styles.rankLadderTitle}>Rank Progression</Text>
+      <View style={styles.rankLadderContainer}>
+        {RANK_LADDER.map((rank, index) => {
+          const isCurrentRank = rank.id === statistics.userRank;
+          const isUnlocked = statistics.userRank >= rank.id;
+          const isNextRank = rank.id === statistics.userRank + 1;
+          const upgradeCheck = isNextRank
+            ? checkCanUpgradeRank(statistics.userRank, userCredibility, userMojo)
+            : null;
+
+          return (
+            <View
+              key={rank.id}
+              style={[
+                styles.rankLadderItem,
+                isCurrentRank && styles.rankLadderItemCurrent,
+                !isUnlocked && styles.rankLadderItemLocked,
+              ]}
+            >
+              <View style={styles.rankLadderLeft}>
+                <MaterialCommunityIcons
+                  name={rank.icon as any}
+                  size={40}
+                  color={isUnlocked ? rank.color : colors.textMuted}
+                  style={!isUnlocked && styles.iconLocked}
+                />
+                <View style={styles.rankLadderInfo}>
+                  <Text
+                    style={[
+                      styles.rankLadderName,
+                      isCurrentRank && styles.rankLadderNameCurrent,
+                      !isUnlocked && styles.rankLadderNameLocked,
+                    ]}
+                  >
+                    {rank.name}
+                  </Text>
+                  <Text style={styles.rankLadderRequirements}>
+                    {rank.minCredibility} Credibility • {rank.mojoCost} Mojo
+                  </Text>
+                </View>
+              </View>
+
+              {isCurrentRank && (
+                <View style={styles.currentRankBadge}>
+                  <Text style={styles.currentRankBadgeText}>CURRENT</Text>
+                </View>
+              )}
+
+              {isNextRank && upgradeCheck && (
+                <>
+                  {upgradeCheck.canUpgrade ? (
+                    <TouchableOpacity
+                      style={styles.upgradeButton}
+                      onPress={() => handleUpgradePress(rank.id)}
+                    >
+                      <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.lockedBadge}>
+                      <MaterialCommunityIcons name="lock" size={20} color={colors.textMuted} />
+                    </View>
+                  )}
+                  {upgradeCheck.message && !upgradeCheck.canUpgrade && (
+                    <Text style={styles.upgradeMessage}>{upgradeCheck.message}</Text>
+                  )}
+                </>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Upgrade Confirmation Modal */}
+      <Modal
+        visible={showUpgradeConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUpgradeConfirm(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowUpgradeConfirm(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Rank Upgrade</Text>
+              <TouchableOpacity onPress={() => setShowUpgradeConfirm(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              {upgradingToRank && (
+                <>
+                  <Text style={styles.confirmText}>
+                    Are you sure you want to upgrade to {RANK_LADDER.find(r => r.id === upgradingToRank)?.name}?
+                  </Text>
+                  <Text style={styles.confirmSubtext}>
+                    It will cost you {RANK_LADDER.find(r => r.id === upgradingToRank)?.mojoCost} mojo, but you will be infinitely more respected!
+                  </Text>
+                  <View style={styles.confirmButtons}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => setShowUpgradeConfirm(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.confirmButton}
+                      onPress={handleConfirmUpgrade}
+                    >
+                      <LinearGradient
+                        colors={[colors.accent, colors.accentGlow]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.confirmButtonGradient}
+                      >
+                        <Text style={styles.confirmButtonText}>Upgrade!</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+};
+
 // Cumulative bar chart for goal progress
 const GoalProgressBarChart = ({ data, goalTotal }: { data: any[]; goalTotal: number }) => {
   const maxValue = goalTotal * 1.2; // Add 20% headroom
@@ -361,6 +590,7 @@ export default function StatisticsScreen() {
   const insets = useSafeAreaInsets();
 
   const [viewMode, setViewMode] = useState<ViewMode>('personal');
+  const [personalTab, setPersonalTab] = useState<PersonalTab>('data');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
   const [showCredibilityInfo, setShowCredibilityInfo] = useState(false);
   const [showStatusLadder, setShowStatusLadder] = useState(false);
@@ -521,7 +751,38 @@ export default function StatisticsScreen() {
               {/* Page Title */}
               <Text style={styles.pageTitle}>Personal Stats</Text>
 
-              {/* Current Credibility Score */}
+              {/* Personal Tab Navigation */}
+              <View style={styles.personalTabContainer}>
+                <TouchableOpacity
+                  style={[styles.personalTab, personalTab === 'data' && styles.personalTabActive]}
+                  onPress={() => setPersonalTab('data')}
+                >
+                  <Text style={[styles.personalTabText, personalTab === 'data' && styles.personalTabTextActive]}>
+                    Data
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.personalTab, personalTab === 'rank' && styles.personalTabActive]}
+                  onPress={() => setPersonalTab('rank')}
+                >
+                  <Text style={[styles.personalTabText, personalTab === 'rank' && styles.personalTabTextActive]}>
+                    Rank
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.personalTab, personalTab === 'badges' && styles.personalTabActive]}
+                  onPress={() => setPersonalTab('badges')}
+                >
+                  <Text style={[styles.personalTabText, personalTab === 'badges' && styles.personalTabTextActive]}>
+                    Badges
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Data Tab Content */}
+              {personalTab === 'data' && (
+                <>
+                  {/* Current Credibility Score */}
               <View style={styles.credibilityScoreSection}>
                 <View style={styles.sectionHeaderWithInfo}>
                   <Text style={styles.sectionSubtitle}>Current Credibility</Text>
@@ -608,20 +869,28 @@ export default function StatisticsScreen() {
                 </View>
               )}
 
-              {/* Status Box */}
-              <TouchableOpacity
-                style={styles.statusBox}
-                onPress={() => setShowStatusLadder(true)}
-              >
-                <View style={styles.statusBoxContent}>
-                  <MaterialCommunityIcons name={currentStatus.icon as any} size={32} color={currentStatus.color} />
-                  <View style={styles.statusTextContainer}>
-                    <Text style={styles.statusBoxLabel}>Your Status</Text>
-                    <Text style={styles.statusBoxValue}>{currentStatus.name}</Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
+                </>
+              )}
+
+              {/* Rank Tab Content */}
+              {personalTab === 'rank' && (
+                <RankLadderView
+                  statistics={statistics}
+                  isLoading={isStatsLoading}
+                  onRankUpgrade={loadStatistics}
+                />
+              )}
+
+              {/* Badges Tab Content */}
+              {personalTab === 'badges' && (
+                <View style={styles.comingSoonContainer}>
+                  <MaterialCommunityIcons name="trophy-outline" size={64} color={colors.textMuted} />
+                  <Text style={styles.comingSoonText}>Coming Soon</Text>
+                  <Text style={styles.comingSoonSubtext}>
+                    Badge collection and achievements will be available in a future update
+                  </Text>
                 </View>
-              </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -685,7 +954,7 @@ export default function StatisticsScreen() {
                 ) : groupMemberStats.length > 0 ? (
                   <View style={styles.leaderboardCard}>
                     {groupMemberStats.map((member, index) => {
-                      const memberStatus = getCurrentStatus(member.credibility);
+                      const memberRank = getUserRank(member.userRank);
                       const displayName = member.isCurrentUser ? 'You' : (member.fullName || 'Unknown');
                       return (
                         <View
@@ -698,6 +967,12 @@ export default function StatisticsScreen() {
                         >
                           <View style={styles.leaderboardLeft}>
                             <Text style={styles.leaderboardRank}>#{index + 1}</Text>
+                            <MaterialCommunityIcons
+                              name={memberRank.icon as any}
+                              size={32}
+                              color={memberRank.color}
+                              style={{ marginRight: 8 }}
+                            />
                             <View style={styles.leaderboardInfo}>
                               <Text style={[
                                 styles.leaderboardName,
@@ -705,7 +980,7 @@ export default function StatisticsScreen() {
                               ]}>
                                 {displayName}
                               </Text>
-                              <Text style={styles.leaderboardRankName}>{memberStatus.name}</Text>
+                              <Text style={styles.leaderboardRankName}>{memberRank.name}</Text>
                             </View>
                           </View>
                           <View style={styles.leaderboardRight}>
@@ -1330,10 +1605,10 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: colors.glassLight,
+    backgroundColor: colors.backgroundStart,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderWidth: 2,
+    borderColor: colors.accent,
     width: '100%',
     maxWidth: 400,
     maxHeight: '80%',
@@ -1418,5 +1693,260 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     padding: 20,
+  },
+  // Personal tabs
+  personalTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.glassLight,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  personalTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  personalTabActive: {
+    backgroundColor: colors.accent,
+  },
+  personalTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  personalTabTextActive: {
+    color: colors.textPrimary,
+  },
+  // Coming soon
+  comingSoonContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    gap: 16,
+  },
+  comingSoonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  comingSoonSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  // Rank ladder styles
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 204, 0, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    padding: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.warning,
+    lineHeight: 20,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.error,
+    padding: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.error,
+    lineHeight: 20,
+  },
+  currentRankCard: {
+    backgroundColor: colors.glassLight,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 24,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  currentRankLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  currentRankDisplay: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  currentRankName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flexWrap: 'wrap',
+  },
+  currentRankStats: {
+    flexDirection: 'row',
+    gap: 32,
+  },
+  rankStatItem: {
+    alignItems: 'center',
+  },
+  rankStatLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  rankStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  rankLadderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: 16,
+  },
+  rankLadderContainer: {
+    backgroundColor: colors.glassLight,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    overflow: 'hidden',
+  },
+  rankLadderItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.glassBorder,
+  },
+  rankLadderItemCurrent: {
+    backgroundColor: colors.glassDark,
+  },
+  rankLadderItemLocked: {
+    opacity: 0.5,
+  },
+  rankLadderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  rankLadderInfo: {
+    flex: 1,
+  },
+  rankLadderName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  rankLadderNameCurrent: {
+    color: colors.accent,
+  },
+  rankLadderNameLocked: {
+    color: colors.textMuted,
+  },
+  rankLadderRequirements: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  iconLocked: {
+    opacity: 0.3,
+  },
+  currentRankBadge: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  currentRankBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  upgradeButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  upgradeButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  lockedBadge: {
+    padding: 8,
+    alignSelf: 'flex-start',
+  },
+  upgradeMessage: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  confirmText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: colors.glassDark,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  confirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  confirmButtonGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
   },
 });

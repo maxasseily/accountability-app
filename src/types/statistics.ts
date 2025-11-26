@@ -5,6 +5,7 @@ export interface UserStatistics {
   credibility: number;
   lifetimeGoalsLogged: number;
   mojo: number;
+  userRank: number;
   createdAt: string;
   updatedAt: string;
 }
