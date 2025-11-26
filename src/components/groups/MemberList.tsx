@@ -10,6 +10,8 @@ import type { UserGoal } from '../../types/goals';
 import { getSubActivityConfig } from '../../utils/goalConfig';
 import { getUserStatistics } from '../../lib/statistics';
 import { getUserRank } from '../../types/ranks';
+import { getDisplayedBadge } from '../../lib/badges';
+import type { Badge } from '../../types/badges';
 
 interface MemberListProps {
   members: GroupMemberWithProfile[];
@@ -35,6 +37,8 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
   const [isLoadingGoal, setIsLoadingGoal] = useState(true);
   const [rankName, setRankName] = useState<string | null>(null);
   const [isLoadingRank, setIsLoadingRank] = useState(true);
+  const [displayedBadge, setDisplayedBadge] = useState<Badge | null>(null);
+  const [isLoadingBadge, setIsLoadingBadge] = useState(true);
   const { getUserGoal } = useGoal();
 
   // Load the member's latest photo
@@ -79,12 +83,26 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
     }
   }, [member.user_id]);
 
-  // Load photo, goal, and rank on mount or when refresh is triggered
+  // Load the member's displayed badge
+  const loadBadge = useCallback(async () => {
+    try {
+      setIsLoadingBadge(true);
+      const badge = await getDisplayedBadge(member.user_id);
+      setDisplayedBadge(badge);
+    } catch (error) {
+      console.error('Error loading member badge:', error);
+    } finally {
+      setIsLoadingBadge(false);
+    }
+  }, [member.user_id]);
+
+  // Load photo, goal, rank, and badge on mount or when refresh is triggered
   useEffect(() => {
     loadPhoto();
     loadGoal();
     loadRank();
-  }, [loadPhoto, loadGoal, loadRank, refreshToken]);
+    loadBadge();
+  }, [loadPhoto, loadGoal, loadRank, loadBadge, refreshToken]);
 
   return (
     <View style={styles.memberItem}>
@@ -118,7 +136,14 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
       </TouchableOpacity>
 
       <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{displayName}</Text>
+        <View style={styles.memberNameRow}>
+          <Text style={styles.memberName}>{displayName}</Text>
+          {isLoadingBadge ? null : displayedBadge ? (
+            <Text style={styles.memberBadge} title={displayedBadge.name}>
+              {displayedBadge.icon}
+            </Text>
+          ) : null}
+        </View>
         {isLoadingRank ? (
           <ActivityIndicator size="small" color={colors.textMuted} style={{ alignSelf: 'flex-start' }} />
         ) : rankName ? (
@@ -316,11 +341,19 @@ const styles = StyleSheet.create({
   memberInfo: {
     flex: 1,
   },
+  memberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
   memberName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: 2,
+  },
+  memberBadge: {
+    fontSize: 18,
   },
   memberRank: {
     fontSize: 12,

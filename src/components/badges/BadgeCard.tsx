@@ -1,18 +1,44 @@
 // BadgeCard component - displays a single badge with press-to-view details
 
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../utils/colors';
 import { useState } from 'react';
 import type { BadgeWithStatus } from '../../types/badges';
+import { setDisplayedBadge } from '../../lib/badges';
 
 interface BadgeCardProps {
   badge: BadgeWithStatus;
+  userId: string;
+  currentDisplayedBadgeId?: string | null;
+  onDisplayBadgeSet?: () => void;
 }
 
-export default function BadgeCard({ badge }: BadgeCardProps) {
+export default function BadgeCard({ badge, userId, currentDisplayedBadgeId, onDisplayBadgeSet }: BadgeCardProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [isSettingDisplay, setIsSettingDisplay] = useState(false);
+
+  const isCurrentlyDisplayed = currentDisplayedBadgeId === badge.id;
+
+  const handleSetAsDisplayed = async () => {
+    setIsSettingDisplay(true);
+    try {
+      const success = await setDisplayedBadge(userId, badge.id);
+      if (success) {
+        Alert.alert('Success!', `"${badge.name}" is now your displayed badge!`);
+        setShowDetails(false);
+        onDisplayBadgeSet?.();
+      } else {
+        Alert.alert('Error', 'Failed to set displayed badge. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error setting displayed badge:', error);
+      Alert.alert('Error', 'Failed to set displayed badge. Please try again.');
+    } finally {
+      setIsSettingDisplay(false);
+    }
+  };
 
   return (
     <>
@@ -113,6 +139,39 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
             {/* Progress value (if available) */}
             {badge.isEarned && badge.progressValue !== undefined && (
               <Text style={styles.progressValue}>Progress: {badge.progressValue}</Text>
+            )}
+
+            {/* Set as Displayed Badge button (only for earned badges) */}
+            {badge.isEarned && (
+              <TouchableOpacity
+                style={[styles.setDisplayButton, isCurrentlyDisplayed && styles.setDisplayButtonActive]}
+                onPress={handleSetAsDisplayed}
+                disabled={isSettingDisplay || isCurrentlyDisplayed}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={isCurrentlyDisplayed
+                    ? [colors.glassDark, colors.glassDark]
+                    : [colors.accent, colors.accentGlow]
+                  }
+                  style={styles.setDisplayGradient}
+                >
+                  {isSettingDisplay ? (
+                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons
+                        name={isCurrentlyDisplayed ? "star" : "star-outline"}
+                        size={20}
+                        color={colors.textPrimary}
+                      />
+                      <Text style={styles.setDisplayText}>
+                        {isCurrentlyDisplayed ? 'Currently Displayed' : 'Set as Displayed Badge'}
+                      </Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
             )}
           </View>
         </TouchableOpacity>
@@ -303,5 +362,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 8,
+  },
+
+  // Set as Displayed Badge button
+  setDisplayButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 16,
+  },
+  setDisplayButtonActive: {
+    opacity: 0.7,
+  },
+  setDisplayGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  setDisplayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
   },
 });

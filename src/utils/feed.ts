@@ -6,6 +6,11 @@ export interface FeedPost extends DailyPhoto {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    displayed_badge?: {
+      id: string;
+      icon: string;
+      name: string;
+    } | null;
   };
 }
 
@@ -87,11 +92,17 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
       return [];
     }
 
-    // Get profiles for all users who posted
+    // Get profiles for all users who posted (including their displayed badge)
     const userIds = [...new Set(photos.map(p => p.user_id))];
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url')
+      .select(`
+        id,
+        full_name,
+        avatar_url,
+        displayed_badge_id,
+        badge:badges!profiles_displayed_badge_id_fkey(id, icon, name)
+      `)
       .in('id', userIds);
 
     if (profilesError) {
@@ -102,14 +113,18 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
     // Combine photos with profiles
-    const feedPosts: FeedPost[] = photos.map(photo => ({
-      ...photo,
-      profile: profileMap.get(photo.user_id) || {
-        id: photo.user_id,
-        full_name: null,
-        avatar_url: null,
-      },
-    }));
+    const feedPosts: FeedPost[] = photos.map(photo => {
+      const profile = profileMap.get(photo.user_id);
+      return {
+        ...photo,
+        profile: {
+          id: photo.user_id,
+          full_name: profile?.full_name || null,
+          avatar_url: profile?.avatar_url || null,
+          displayed_badge: profile?.badge || null,
+        },
+      };
+    });
 
     return feedPosts;
   } catch (error) {

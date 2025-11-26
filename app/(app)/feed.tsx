@@ -144,12 +144,19 @@ export default function FeedScreen() {
                     )}
                   </View>
                   <View style={styles.postInfo}>
-                    <Text style={styles.userName}>
-                      {post.profile.full_name || 'Unknown User'}
-                      {post.user_id === user?.id && (
-                        <Text style={styles.youBadge}> (You)</Text>
+                    <View style={styles.userNameRow}>
+                      <Text style={styles.userName}>
+                        {post.profile.full_name || 'Unknown User'}
+                        {post.user_id === user?.id && (
+                          <Text style={styles.youBadge}> (You)</Text>
+                        )}
+                      </Text>
+                      {post.profile.displayed_badge && (
+                        <Text style={styles.badgeIcon} title={post.profile.displayed_badge.name}>
+                          {post.profile.displayed_badge.icon}
+                        </Text>
                       )}
-                    </Text>
+                    </View>
                     <Text style={styles.postDate}>
                       {new Date(post.date).toLocaleDateString('en-US', {
                         weekday: 'long',
@@ -290,10 +297,18 @@ const styles = StyleSheet.create({
   postInfo: {
     flex: 1,
   },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.textPrimary,
+  },
+  badgeIcon: {
+    fontSize: 18,
   },
   youBadge: {
     fontSize: 14,

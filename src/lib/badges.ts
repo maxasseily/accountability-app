@@ -240,6 +240,63 @@ export async function checkUnderdogBadge(
   }
 }
 
+/**
+ * Set a badge as the user's displayed badge
+ * Only works if user has earned the badge
+ */
+export async function setDisplayedBadge(
+  userId: string,
+  badgeId: string
+): Promise<boolean> {
+  const { error } = await supabase.rpc('set_displayed_badge', {
+    p_user_id: userId,
+    p_badge_id: badgeId,
+  });
+
+  if (error) {
+    console.error('Error setting displayed badge:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Clear the user's displayed badge
+ */
+export async function clearDisplayedBadge(userId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('clear_displayed_badge', {
+    p_user_id: userId,
+  });
+
+  if (error) {
+    console.error('Error clearing displayed badge:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get the currently displayed badge for a user
+ */
+export async function getDisplayedBadge(userId: string): Promise<Badge | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      displayed_badge_id,
+      badge:badges!profiles_displayed_badge_id_fkey(*)
+    `)
+    .eq('id', userId)
+    .single();
+
+  if (error || !data || !data.badge) {
+    return null;
+  }
+
+  return mapBadgeFromDb(data.badge);
+}
+
 // Helper functions to map database snake_case to camelCase
 function mapBadgeFromDb(dbBadge: any): Badge {
   return {
