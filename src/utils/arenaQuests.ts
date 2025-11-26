@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { ArenaQuest, ArenaQuestWithProfiles, QuestType } from '../types/arena';
+import { checkQuestBadges, checkHighRollerBadge, checkUnderdogBadge } from '../lib/badges';
 
 /**
  * Send an arena quest request to another user
@@ -382,6 +383,17 @@ export async function resolveSpeculationQuest(
   questId: string,
   result: boolean
 ): Promise<boolean> {
+  // Get quest details before resolving to check badges
+  const { data: quest, error: questError } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('id', questId)
+    .single();
+
+  if (questError) {
+    console.error('Error fetching quest for badge check:', questError);
+  }
+
   const { data, error } = await supabase.rpc('resolve_speculation_quest', {
     p_quest_id: questId,
     p_result: result,
@@ -390,6 +402,33 @@ export async function resolveSpeculationQuest(
   if (error) {
     console.error('Error resolving speculation quest:', error);
     throw error;
+  }
+
+  // Check for badges after resolution
+  if (quest) {
+    const { data: userData } = await supabase.auth.getUser();
+    const resolverId = userData?.user?.id;
+
+    if (resolverId) {
+      // Check Peacemaker badge for resolver
+      checkQuestBadges(resolverId).catch(err => console.error('Error checking quest badges:', err));
+    }
+
+    // Determine winner and check their badges
+    const creatorWon = result === quest.speculation_creator_side;
+    const winnerId = creatorWon ? quest.sender_id : quest.speculation_accepter_id;
+    const totalPot = quest.mojo_stake * 2;
+
+    if (winnerId) {
+      // Check High Roller badge
+      checkHighRollerBadge(winnerId, totalPot).catch(err => console.error('Error checking high roller:', err));
+
+      // Check Underdog badge
+      checkUnderdogBadge(winnerId, quest.odds || 1, true).catch(err => console.error('Error checking underdog:', err));
+
+      // Check quest badges (Prophet/Warmonger)
+      checkQuestBadges(winnerId).catch(err => console.error('Error checking winner quest badges:', err));
+    }
   }
 
   return data as boolean;

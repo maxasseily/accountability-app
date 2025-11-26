@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import type { UserGoal, GoalFrequency, ActivityType, SubActivity } from '../types/goals';
 import type { GoalCompletionResult } from '../types/statistics';
 import { mapRowToUserStatistics } from './statistics';
+import { checkStreakBadges, checkTimeBadges, checkMilestoneBadges } from './badges';
 
 // Helper to get the start of the current week (Monday)
 function getWeekStartDate(): string {
@@ -134,6 +135,13 @@ export async function incrementGoalProgress(userId: string): Promise<GoalComplet
   if (!data?.goal || !data?.statistics) {
     throw new Error('Unexpected response from log_goal_completion');
   }
+
+  // Check for badge achievements after goal completion
+  // Run these in the background (don't await)
+  const now = new Date();
+  checkStreakBadges(userId).catch(err => console.error('Error checking streak badges:', err));
+  checkTimeBadges(userId, now).catch(err => console.error('Error checking time badges:', err));
+  checkMilestoneBadges(userId).catch(err => console.error('Error checking milestone badges:', err));
 
   return {
     goal: mapDbToUserGoal(data.goal),

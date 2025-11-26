@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { RANK_LADDER, getUserRank, canUpgradeToRank, type UserRank } from '../types/ranks';
+import { checkMojoBadges } from './badges';
 
 export interface RankUpgradeResult {
   success: boolean;
@@ -31,6 +32,12 @@ export async function upgradeUserRank(
     // The function returns a single row with success, new_mojo, and error_message
     if (data && data.length > 0) {
       const result = data[0];
+
+      // Check for Big Spender badge after successful rank upgrade
+      if (result.success) {
+        checkMojoBadges(userId).catch(err => console.error('Error checking mojo badges:', err));
+      }
+
       return {
         success: result.success,
         newMojo: result.new_mojo,
