@@ -7,6 +7,7 @@ import type { UserGoal, GoalFrequency, ActivityType, SubActivity } from '../type
 import type { GoalCompletionResult } from '../types/statistics';
 import { mapRowToUserStatistics } from './statistics';
 import { checkStreakBadges, checkTimeBadges, checkMilestoneBadges } from './badges';
+import { calculatePerGoalGain } from './credibility';
 
 // Helper to get the start of the current week (Monday)
 function getWeekStartDate(): string {
@@ -147,6 +148,7 @@ export async function incrementGoalProgress(userId: string): Promise<GoalComplet
     goal: mapDbToUserGoal(data.goal),
     statistics: mapRowToUserStatistics(data.statistics),
     mojoGained: data.mojo_gained,
+    credibilityGained: data.credibility_gained, // NEW: Credibility gained from this log
     weeklyGoalCompleted: data.weekly_goal_completed,
     hasAllianceBonus: data.has_alliance_bonus,
   };
@@ -180,4 +182,18 @@ export async function resetWeeklyProgress(userId: string): Promise<UserGoal> {
  */
 export async function getAnyUserGoal(userId: string): Promise<UserGoal | null> {
   return getUserGoalFromDb(userId);
+}
+
+/**
+ * Preview credibility gain before logging a goal
+ * (Client-side preview before committing)
+ *
+ * @param frequency - User's weekly goal frequency
+ * @returns Expected credibility gain from logging the goal
+ *
+ * @example
+ * previewCredibilityGain(3) // Returns ~3.46
+ */
+export function previewCredibilityGain(frequency: number): number {
+  return calculatePerGoalGain(frequency);
 }
