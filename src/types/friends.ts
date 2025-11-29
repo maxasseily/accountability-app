@@ -17,7 +17,7 @@ export interface FriendProfile {
   user_rank: number;
   credibility: number;
   mojo: number;
-  goal_type: string | null;
+  activity: string | null;
   sub_activity: string | null;
   displayed_badge_icon: string | null;
   displayed_badge_name: string | null;
@@ -33,6 +33,9 @@ export interface Friend {
   friendship_id: string;
   user_rank: number;
   credibility: number;
+  mojo: number;
+  activity: string | null;
+  sub_activity: string | null;
   displayed_badge_icon: string | null;
   displayed_badge_name: string | null;
 }
@@ -44,6 +47,9 @@ export interface PendingFriendRequest {
   avatar_url: string | null;
   user_rank: number;
   credibility: number;
+  mojo: number;
+  activity: string | null;
+  sub_activity: string | null;
   displayed_badge_icon: string | null;
   displayed_badge_name: string | null;
   is_requester: boolean;
