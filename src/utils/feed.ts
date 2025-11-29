@@ -4,6 +4,7 @@ import { DailyPhoto } from './dailyPhoto';
 export interface FeedPost extends DailyPhoto {
   profile: {
     id: string;
+    username: string;
     full_name: string | null;
     avatar_url: string | null;
     displayed_badge?: {
@@ -28,8 +29,9 @@ export function getWeekStart(): Date {
 }
 
 /**
- * Get group members' photos for the current week (Monday to Sunday)
- * Returns posts in chronological order (oldest first)
+ * Get feed posts from friends and group members for the current week (Monday to Sunday)
+ * Works without requiring group membership - shows friends' posts only if no group
+ * Returns posts in chronological order (most recent first)
  */
 export async function getGroupFeedPosts(): Promise<FeedPost[]> {
   try {
@@ -39,47 +41,57 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
       throw new Error('Not authenticated');
     }
 
-    // Get user's group
-    const { data: membership, error: membershipError } = await supabase
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (membershipError) {
-      throw new Error(membershipError.message);
-    }
-
-    if (!membership) {
-      return []; // User is not in a group
-    }
-
-    // Get all group members
-    const { data: groupMembers, error: membersError } = await supabase
-      .from('group_members')
-      .select('user_id')
-      .eq('group_id', membership.group_id);
-
-    if (membersError) {
-      throw new Error(membersError.message);
-    }
-
-    if (!groupMembers || groupMembers.length === 0) {
-      return [];
-    }
-
-    // Get the start of the current week (Monday)
     const weekStart = getWeekStart();
     const weekStartStr = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Get member IDs
-    const memberIds = groupMembers.map(m => m.user_id);
+    // Fetch group members and friends in parallel
+    const [groupMembersResult, friendshipsResult] = await Promise.all([
+      supabase
+        .from('group_members')
+        .select('user_id, group_id')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('friendships')
+        .select('user_id_1, user_id_2')
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id}`)
+        .eq('status', 'accepted'),
+    ]);
 
-    // Fetch all photos from group members for the current week (most recent first)
+    // Collect user IDs to fetch posts from
+    const userIdsSet = new Set<string>();
+
+    // Add group members (if user is in a group)
+    if (groupMembersResult.data) {
+      const { data: groupMembers } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupMembersResult.data.group_id);
+
+      groupMembers?.forEach(m => userIdsSet.add(m.user_id));
+    }
+
+    // Add friends
+    friendshipsResult.data?.forEach(friendship => {
+      const friendId = friendship.user_id_1 === user.id
+        ? friendship.user_id_2
+        : friendship.user_id_1;
+      userIdsSet.add(friendId);
+    });
+
+    // If no group members or friends, return empty array
+    // User can still use the app without a group or friends
+    if (userIdsSet.size === 0) {
+      return [];
+    }
+
+    const userIds = Array.from(userIdsSet);
+
+    // Fetch all photos from group members and friends for the current week
     const { data: photos, error: photosError } = await supabase
       .from('daily_photos')
       .select('*')
-      .in('user_id', memberIds)
+      .in('user_id', userIds)
       .gte('date', weekStartStr)
       .order('date', { ascending: false })
       .order('uploaded_at', { ascending: false });
@@ -93,17 +105,18 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
     }
 
     // Get profiles for all users who posted (including their displayed badge)
-    const userIds = [...new Set(photos.map(p => p.user_id))];
+    const photoUserIds = [...new Set(photos.map(p => p.user_id))];
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select(`
         id,
+        username,
         full_name,
         avatar_url,
         displayed_badge_id,
         badge:badges!profiles_displayed_badge_id_fkey(id, icon, name)
       `)
-      .in('id', userIds);
+      .in('id', photoUserIds);
 
     if (profilesError) {
       throw new Error(profilesError.message);
@@ -119,6 +132,7 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
         ...photo,
         profile: {
           id: photo.user_id,
+          username: profile?.username || 'Unknown',
           full_name: profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           displayed_badge: profile?.badge || null,
@@ -135,6 +149,7 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
 
 /**
  * Subscribe to changes in group feed (new photos, deleted photos, etc.)
+ * Also subscribes to friendship changes to update feed when friends are added/removed
  */
 export function subscribeToFeedChanges(
   callback: (posts: FeedPost[]) => void
@@ -149,22 +164,41 @@ export function subscribeToFeedChanges(
         schema: 'public',
         table: 'daily_photos',
       },
-      async (payload) => {
-        console.log('Feed subscription received change:', payload.eventType);
+      async () => {
         try {
           const posts = await getGroupFeedPosts();
           callback(posts);
         } catch (error) {
-          console.error('Error refreshing feed after change:', error);
+          // Silently fail
         }
       }
     )
-    .subscribe((status) => {
-      console.log('Feed subscription status:', status);
-    });
+    .subscribe();
+
+  // Subscribe to friendships changes (to update feed when friends are added/removed)
+  const friendshipsSubscription = supabase
+    .channel('feed_friendships_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'friendships',
+      },
+      async () => {
+        try {
+          const posts = await getGroupFeedPosts();
+          callback(posts);
+        } catch (error) {
+          // Silently fail
+        }
+      }
+    )
+    .subscribe();
 
   // Return cleanup function
   return () => {
     photosSubscription.unsubscribe();
+    friendshipsSubscription.unsubscribe();
   };
 }

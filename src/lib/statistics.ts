@@ -37,7 +37,15 @@ export async function getOrCreateUserStatistics(userId: string): Promise<UserSta
     throw error;
   }
 
-  return mapRowToUserStatistics(data);
+  // Get friend count
+  const { data: friendCountData } = await supabase.rpc('get_friend_count', {
+    target_user_id: userId,
+  });
+
+  return {
+    ...mapRowToUserStatistics(data),
+    friendCount: friendCountData || 0,
+  };
 }
 
 export async function getUserStatistics(userId: string): Promise<UserStatistics | null> {
