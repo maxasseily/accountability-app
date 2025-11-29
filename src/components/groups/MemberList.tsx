@@ -30,7 +30,7 @@ interface MemberItemProps {
 
 function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: MemberItemProps) {
   const { profile } = member;
-  const displayName = profile.full_name || profile.email.split('@')[0] || 'User';
+  const displayName = profile.username || profile.email.split('@')[0] || 'user';
   const [latestPhoto, setLatestPhoto] = useState<DailyPhoto | null>(null);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
   const [memberGoal, setMemberGoal] = useState<UserGoal | null>(null);

@@ -323,7 +323,7 @@ export default function HomeScreen() {
               <View style={styles.welcomeTextContainer}>
                 <Text style={styles.greetingLabel}>Welcome back,</Text>
                 <Text style={styles.greetingName}>
-                  {user?.name ? `${user.name}!` : 'friend!'}
+                  {user?.username ? `${user.username}!` : 'friend!'}
                 </Text>
               </View>
               <TouchableOpacity

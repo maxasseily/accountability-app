@@ -108,7 +108,7 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
   const [profilesResult, statisticsResult, goalsResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, username')
       .in('id', userIds),
     supabase
       .from('user_statistics')
@@ -125,7 +125,7 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
   if (goalsResult.error) throw goalsResult.error;
 
   // Create lookup maps
-  const profilesMap = new Map(profilesResult.data?.map(p => [p.id, p.full_name]) || []);
+  const profilesMap = new Map(profilesResult.data?.map(p => [p.id, p.username]) || []);
   const statisticsMap = new Map(statisticsResult.data?.map(s => [s.user_id, { credibility: s.credibility, userRank: s.user_rank ?? 1 }]) || []);
   const goalsMap = new Map(goalsResult.data?.map(g => [g.user_id, g.sub_activity]) || []);
 
