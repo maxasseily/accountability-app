@@ -9,6 +9,7 @@ import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { getGroupFeedPosts, subscribeToFeedChanges, FeedPost } from '../../src/utils/feed';
+import { getPendingRequests } from '../../src/utils/friends';
 import { useAuth } from '../../src/context/AuthContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -20,6 +21,7 @@ export default function FeedScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -29,6 +31,15 @@ export default function FeedScreen() {
       console.error('Error loading feed posts:', error);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const loadPendingRequestCount = useCallback(async () => {
+    try {
+      const requests = await getPendingRequests();
+      setPendingRequestCount(requests.received.length);
+    } catch (error) {
+      console.error('Error loading pending requests:', error);
     }
   }, []);
 
@@ -61,7 +72,8 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       loadPosts();
-    }, [loadPosts])
+      loadPendingRequestCount();
+    }, [loadPosts, loadPendingRequestCount])
   );
 
   if (isLoading) {
@@ -105,6 +117,11 @@ export default function FeedScreen() {
             onPress={() => router.push('/(app)/friends')}
           >
             <MaterialCommunityIcons name="account-multiple" size={24} color={colors.accent} />
+            {pendingRequestCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{pendingRequestCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -250,6 +267,26 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: colors.backgroundStart,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   emptyState: {
     alignItems: 'center',

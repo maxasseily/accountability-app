@@ -10,7 +10,9 @@ import {
   removeFriend,
   subscribeToFriendshipChanges,
 } from '../../utils/friends';
-import UserProfileCard from './UserProfileCard';
+import FriendCard from './FriendCard';
+import FriendDetailsModal from './FriendDetailsModal';
+import AcceptFriendRequestModal from './AcceptFriendRequestModal';
 import type { Friend, PendingFriendRequest } from '../../types/friends';
 
 export default function FriendsListTab() {
@@ -23,6 +25,11 @@ export default function FriendsListTab() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingFriendshipId, setLoadingFriendshipId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<PendingFriendRequest | null>(null);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<'accept' | 'decline' | null>(null);
 
   const loadFriendsData = useCallback(async () => {
     try {
@@ -69,33 +76,80 @@ export default function FriendsListTab() {
     loadFriendsData();
   }, [loadFriendsData]);
 
-  const handleAcceptRequest = useCallback(async (friendshipId: string) => {
-    setLoadingFriendshipId(friendshipId);
+  const handleViewRequest = (request: PendingFriendRequest) => {
+    setSelectedRequest(request);
+    setShowAcceptModal(true);
+  };
+
+  const handleAcceptRequest = useCallback(async () => {
+    if (!selectedRequest) return;
+
+    setLoadingAction('accept');
     setError(null);
     try {
-      await acceptFriendRequest(friendshipId);
+      await acceptFriendRequest(selectedRequest.friendship_id);
       await loadFriendsData();
+      setShowAcceptModal(false);
+      setSelectedRequest(null);
     } catch (err: any) {
       console.error('Error accepting friend request:', err);
       setError(err.message || 'Failed to accept friend request');
     } finally {
-      setLoadingFriendshipId(null);
+      setLoadingAction(null);
     }
-  }, [loadFriendsData]);
+  }, [selectedRequest, loadFriendsData]);
 
-  const handleRemoveFriend = useCallback(async (friendshipId: string) => {
-    setLoadingFriendshipId(friendshipId);
+  const handleDeclineRequest = useCallback(async () => {
+    if (!selectedRequest) return;
+
+    setLoadingAction('decline');
     setError(null);
     try {
-      await removeFriend(friendshipId);
+      await removeFriend(selectedRequest.friendship_id);
       await loadFriendsData();
+      setShowAcceptModal(false);
+      setSelectedRequest(null);
+    } catch (err: any) {
+      console.error('Error declining friend request:', err);
+      setError(err.message || 'Failed to decline friend request');
+    } finally {
+      setLoadingAction(null);
+    }
+  }, [selectedRequest, loadFriendsData]);
+
+  const handleCancelAcceptModal = () => {
+    setShowAcceptModal(false);
+    setSelectedRequest(null);
+    setLoadingAction(null);
+  };
+
+  const handleViewFriend = (friend: Friend) => {
+    setSelectedFriend(friend);
+    setShowDetailsModal(true);
+  };
+
+  const handleRemoveFriendFromModal = useCallback(async () => {
+    if (!selectedFriend) return;
+
+    setLoadingFriendshipId(selectedFriend.friendship_id);
+    setError(null);
+    try {
+      await removeFriend(selectedFriend.friendship_id);
+      await loadFriendsData();
+      setShowDetailsModal(false);
+      setSelectedFriend(null);
     } catch (err: any) {
       console.error('Error removing friend:', err);
       setError(err.message || 'Failed to remove friend');
     } finally {
       setLoadingFriendshipId(null);
     }
-  }, [loadFriendsData]);
+  }, [selectedFriend, loadFriendsData]);
+
+  const handleCloseDetails = () => {
+    setShowDetailsModal(false);
+    setSelectedFriend(null);
+  };
 
   if (isLoading) {
     return (
@@ -143,12 +197,10 @@ export default function FriendsListTab() {
         {totalFriends > 0 ? (
           <View style={styles.cardContent}>
             {friends.map((friend) => (
-              <UserProfileCard
+              <FriendCard
                 key={friend.friendship_id}
                 profile={friend}
-                action="remove"
-                onActionPress={() => handleRemoveFriend(friend.friendship_id)}
-                isLoading={loadingFriendshipId === friend.friendship_id}
+                onCardPress={() => handleViewFriend(friend)}
               />
             ))}
           </View>
@@ -181,12 +233,10 @@ export default function FriendsListTab() {
                   Incoming ({pendingRequests.received.length})
                 </Text>
                 {pendingRequests.received.map((request) => (
-                  <UserProfileCard
+                  <FriendCard
                     key={request.friendship_id}
                     profile={request}
-                    action="accept"
-                    onActionPress={() => handleAcceptRequest(request.friendship_id)}
-                    isLoading={loadingFriendshipId === request.friendship_id}
+                    onCardPress={() => handleViewRequest(request)}
                   />
                 ))}
               </View>
@@ -199,7 +249,7 @@ export default function FriendsListTab() {
                   Outgoing ({pendingRequests.sent.length})
                 </Text>
                 {pendingRequests.sent.map((request) => (
-                  <UserProfileCard
+                  <FriendCard
                     key={request.friendship_id}
                     profile={request}
                     action="pending_sent"
@@ -217,6 +267,26 @@ export default function FriendsListTab() {
           </View>
         )}
       </View>
+
+      {/* Friend Details Modal */}
+      <FriendDetailsModal
+        visible={showDetailsModal}
+        profile={selectedFriend}
+        onClose={handleCloseDetails}
+        onRemoveFriend={handleRemoveFriendFromModal}
+        isRemoving={loadingFriendshipId === selectedFriend?.friendship_id}
+      />
+
+      {/* Accept Friend Request Modal */}
+      <AcceptFriendRequestModal
+        visible={showAcceptModal}
+        profile={selectedRequest}
+        onAccept={handleAcceptRequest}
+        onDecline={handleDeclineRequest}
+        onCancel={handleCancelAcceptModal}
+        isLoading={loadingAction !== null}
+        loadingAction={loadingAction}
+      />
     </ScrollView>
   );
 }

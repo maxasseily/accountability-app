@@ -4,7 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../utils/colors';
 import { searchUsersByUsername, sendFriendRequest } from '../../utils/friends';
-import UserProfileCard from './UserProfileCard';
+import MinimalUserCard from './MinimalUserCard';
+import AddFriendConfirmationModal from './AddFriendConfirmationModal';
 import type { FriendProfile } from '../../types/friends';
 
 interface AddFriendsTabProps {
@@ -19,6 +20,8 @@ export default function AddFriendsTab({ onRequestSent }: AddFriendsTabProps) {
   const [hasSearched, setHasSearched] = useState(false);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<FriendProfile | null>(null);
 
   // Debounced search
   useEffect(() => {
@@ -45,15 +48,22 @@ export default function AddFriendsTab({ onRequestSent }: AddFriendsTabProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSendRequest = useCallback(async (username: string, userId: string) => {
-    setLoadingUserId(userId);
+  const handleShowConfirmation = (profile: FriendProfile) => {
+    setSelectedProfile(profile);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmAdd = useCallback(async () => {
+    if (!selectedProfile) return;
+
+    setLoadingUserId(selectedProfile.user_id);
     setError(null);
     try {
-      await sendFriendRequest(username);
+      await sendFriendRequest(selectedProfile.username);
 
       // Update search results to reflect pending status
       setSearchResults(prev => prev.map(result => {
-        if (result.user_id === userId) {
+        if (result.user_id === selectedProfile.user_id) {
           return {
             ...result,
             friendship_status: 'pending',
@@ -63,13 +73,20 @@ export default function AddFriendsTab({ onRequestSent }: AddFriendsTabProps) {
         return result;
       }));
 
+      setShowConfirmModal(false);
+      setSelectedProfile(null);
       onRequestSent?.();
     } catch (err: any) {
       setError(err.message || 'Failed to send friend request');
     } finally {
       setLoadingUserId(null);
     }
-  }, [user?.id, onRequestSent]);
+  }, [selectedProfile, user?.id, onRequestSent]);
+
+  const handleCancelAdd = () => {
+    setShowConfirmModal(false);
+    setSelectedProfile(null);
+  };
 
   const getActionForProfile = (profile: FriendProfile): 'send_request' | 'pending_sent' | 'accept' | 'none' => {
     if (!profile.friendship_status) {
@@ -146,20 +163,25 @@ export default function AddFriendsTab({ onRequestSent }: AddFriendsTabProps) {
         {searchResults.map((profile) => {
           const action = getActionForProfile(profile);
           return (
-            <UserProfileCard
+            <MinimalUserCard
               key={profile.user_id}
               profile={profile}
-              action={action}
-              onActionPress={
-                action === 'send_request'
-                  ? () => handleSendRequest(profile.username, profile.user_id)
-                  : undefined
-              }
+              onAddPress={() => handleShowConfirmation(profile)}
               isLoading={loadingUserId === profile.user_id}
+              isPending={action === 'pending_sent'}
             />
           );
         })}
       </ScrollView>
+
+      {/* Add Friend Confirmation Modal */}
+      <AddFriendConfirmationModal
+        visible={showConfirmModal}
+        profile={selectedProfile}
+        onConfirm={handleConfirmAdd}
+        onCancel={handleCancelAdd}
+        isLoading={loadingUserId === selectedProfile?.user_id}
+      />
     </View>
   );
 }
