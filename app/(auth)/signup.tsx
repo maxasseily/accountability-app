@@ -20,37 +20,38 @@ import {
   validateEmail,
   validatePassword,
   validateConfirmPassword,
-  validateName,
+  validateUsername,
   getPasswordStrength,
 } from '../../src/utils/validation';
 import { colors } from '../../src/utils/colors';
 
 export default function SignupScreen() {
-  const { signup } = useAuth();
-  const [name, setName] = useState('');
+  const { signup, checkUsernameAvailability } = useAuth();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   const passwordStrength = getPasswordStrength(password);
 
   const handleSignup = async () => {
     // Validate inputs
-    const nameError = validateName(name);
+    const usernameError = validateUsername(username);
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
     const confirmPasswordError = validateConfirmPassword(password, confirmPassword);
 
-    if (nameError || emailError || passwordError || confirmPasswordError) {
+    if (usernameError || emailError || passwordError || confirmPasswordError) {
       setErrors({
-        name: nameError || '',
+        username: usernameError || '',
         email: emailError || '',
         password: passwordError || '',
         confirmPassword: confirmPasswordError || '',
@@ -58,11 +59,33 @@ export default function SignupScreen() {
       return;
     }
 
-    setErrors({ name: '', email: '', password: '', confirmPassword: '' });
+    // Check username availability
+    setCheckingUsername(true);
+    try {
+      const isAvailable = await checkUsernameAvailability(username);
+      if (!isAvailable) {
+        setErrors({
+          username: 'Username is already taken',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        });
+        setCheckingUsername(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+      Alert.alert('Error', 'Failed to verify username availability. Please try again.');
+      setCheckingUsername(false);
+      return;
+    }
+    setCheckingUsername(false);
+
+    setErrors({ username: '', email: '', password: '', confirmPassword: '' });
     setLoading(true);
 
     try {
-      await signup(name, email, password);
+      await signup(username, email, password);
       // Navigate to onboarding after successful signup
       router.replace('/(onboarding)/activity-selection');
     } catch (error: any) {
@@ -100,13 +123,13 @@ export default function SignupScreen() {
 
           <AuthCard>
             <Input
-              label="Full Name"
-              placeholder="Enter your name"
-              value={name}
-              onChangeText={setName}
-              error={errors.name}
-              autoCapitalize="words"
-              autoComplete="name"
+              label="Username"
+              placeholder="Choose a username"
+              value={username}
+              onChangeText={setUsername}
+              error={errors.username}
+              autoCapitalize="none"
+              autoComplete="username"
             />
 
             <Input
@@ -171,7 +194,7 @@ export default function SignupScreen() {
             <Button
               title="Sign Up"
               onPress={handleSignup}
-              loading={loading}
+              loading={loading || checkingUsername}
               style={styles.button}
             />
 
@@ -179,7 +202,7 @@ export default function SignupScreen() {
               <Text style={styles.footerText}>Already have an account? </Text>
               <Link href="/(auth)/login" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.link}>Sign Up</Text>
+                  <Text style={styles.link}>Sign In</Text>
                 </TouchableOpacity>
               </Link>
             </View>

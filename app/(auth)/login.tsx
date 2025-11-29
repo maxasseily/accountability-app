@@ -16,34 +16,34 @@ import AuthCard from '../../src/components/auth/AuthCard';
 import Input from '../../src/components/ui/Input';
 import Button from '../../src/components/ui/Button';
 import { useAuth } from '../../src/context/AuthContext';
-import { validateEmail, validatePassword } from '../../src/utils/validation';
+import { validateUsername, validatePassword } from '../../src/utils/validation';
 import { colors } from '../../src/utils/colors';
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     // Validate inputs
-    const emailError = validateEmail(email);
+    const usernameError = validateUsername(username);
     const passwordError = validatePassword(password);
 
-    if (emailError || passwordError) {
+    if (usernameError || passwordError) {
       setErrors({
-        email: emailError || '',
+        username: usernameError || '',
         password: passwordError || '',
       });
       return;
     }
 
-    setErrors({ email: '', password: '' });
+    setErrors({ username: '', password: '' });
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(username, password);
       router.replace('/(app)/home');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Failed to login. Please check your credentials.');
@@ -70,14 +70,13 @@ export default function LoginScreen() {
 
           <AuthCard>
             <Input
-              label="Email"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              error={errors.email}
-              keyboardType="email-address"
+              label="Username"
+              placeholder="Enter your username"
+              value={username}
+              onChangeText={setUsername}
+              error={errors.username}
               autoCapitalize="none"
-              autoComplete="email"
+              autoComplete="username"
             />
 
             <Input

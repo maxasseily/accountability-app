@@ -49,8 +49,8 @@ export default function CompletedQuestsCard({ groupId, currentUserId, refreshTok
   const renderQuestDetails = (quest: ArenaQuestWithProfiles) => {
     // Special rendering for speculation
     if (quest.quest_type === 'speculation') {
-      const creatorName = quest.sender_profile.full_name || quest.sender_profile.email.split('@')[0];
-      const accepterName = quest.receiver_profile.full_name || quest.receiver_profile.email.split('@')[0];
+      const creatorName = quest.sender_profile.username || quest.sender_profile.email.split('@')[0];
+      const accepterName = quest.receiver_profile.username || quest.receiver_profile.email.split('@')[0];
 
       // Determine winner based on result and creator's side
       const creatorWon = quest.speculation_result === quest.speculation_creator_side;

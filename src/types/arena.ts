@@ -28,11 +28,11 @@ export interface ArenaQuest {
 
 export interface ArenaQuestWithProfiles extends ArenaQuest {
   sender_profile: {
-    full_name: string | null;
+    username: string;
     email: string;
   };
   receiver_profile: {
-    full_name: string | null;
+    username: string;
     email: string;
   };
 }
