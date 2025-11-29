@@ -16,7 +16,7 @@ export function mapRowToUserStatistics(row: any): UserStatistics {
 
 export interface GroupMemberStats {
   userId: string;
-  fullName: string | null;
+  username: string | null;
   credibility: number;
   subActivity: SubActivity | null;
   userRank: number;
@@ -142,7 +142,7 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
     const stats = statisticsMap.get(userId) || { credibility: 50, userRank: 1 };
     return {
       userId,
-      fullName: profilesMap.get(userId) || 'Unknown',
+      username: profilesMap.get(userId) || 'Unknown',
       credibility: stats.credibility,
       userRank: stats.userRank,
       subActivity: goalsMap.get(userId) || null,

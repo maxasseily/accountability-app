@@ -391,7 +391,7 @@ export default function GroupsScreen() {
               <BlurView intensity={40} tint="dark" style={styles.confirmModalBlur}>
                 <View style={styles.confirmModalInner}>
                   {(() => {
-                    const pendingMemberName = pendingQuestMember.profile.full_name || pendingQuestMember.profile.email.split('@')[0] || 'User';
+                    const pendingMemberName = pendingQuestMember.profile.username || pendingQuestMember.profile.email.split('@')[0] || 'User';
                     const isProphecyOrCurse = selectedAction.id === 'prophecy' || selectedAction.id === 'curse';
                     const stake = parseInt(mojoStake) || 0;
                     const odds = isProphecyOrCurse ? calculateOdds(selectedAction.id, memberCredibility) : 0;

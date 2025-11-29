@@ -17,7 +17,7 @@ const EMOJI_MAP = {
 };
 
 export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
-  const displayName = message.profile.full_name || message.profile.email.split('@')[0];
+  const displayName = message.profile.username || message.profile.email.split('@')[0];
   const formattedTime = new Date(message.created_at).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',

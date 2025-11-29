@@ -5,7 +5,6 @@ export interface FeedPost extends DailyPhoto {
   profile: {
     id: string;
     username: string;
-    full_name: string | null;
     avatar_url: string | null;
     displayed_badge?: {
       id: string;
@@ -111,7 +110,6 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
       .select(`
         id,
         username,
-        full_name,
         avatar_url,
         displayed_badge_id,
         badge:badges!profiles_displayed_badge_id_fkey(id, icon, name)
@@ -133,7 +131,6 @@ export async function getGroupFeedPosts(): Promise<FeedPost[]> {
         profile: {
           id: photo.user_id,
           username: profile?.username || 'Unknown',
-          full_name: profile?.full_name || null,
           avatar_url: profile?.avatar_url || null,
           displayed_badge: profile?.badge || null,
         },
