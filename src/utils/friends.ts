@@ -124,15 +124,26 @@ export async function getFriends(): Promise<Friend[]> {
     // Fetch statistics separately for all friend user IDs
     const { data: statistics, error: statsError } = await supabase
       .from('user_statistics')
-      .select('user_id, credibility, user_rank')
+      .select('user_id, credibility, user_rank, mojo')
       .in('user_id', friendUserIds);
 
     if (statsError) {
       throw statsError;
     }
 
-    // Create a map of statistics by user_id
+    // Fetch goals for all friend user IDs
+    const { data: goals, error: goalsError } = await supabase
+      .from('user_goals')
+      .select('user_id, activity, sub_activity')
+      .in('user_id', friendUserIds);
+
+    if (goalsError) {
+      throw goalsError;
+    }
+
+    // Create maps by user_id
     const statsMap = new Map(statistics?.map(s => [s.user_id, s]) || []);
+    const goalsMap = new Map(goals?.map(g => [g.user_id, g]) || []);
 
     // Combine friendships with profiles
     const friends: Friend[] = profiles?.map(profile => {
@@ -141,6 +152,7 @@ export async function getFriends(): Promise<Friend[]> {
       );
 
       const stats = statsMap.get(profile.id);
+      const goal = goalsMap.get(profile.id);
 
       return {
         user_id: profile.id,
@@ -149,6 +161,9 @@ export async function getFriends(): Promise<Friend[]> {
         friendship_id: friendship!.id,
         user_rank: stats?.user_rank || 1,
         credibility: stats?.credibility || 50,
+        mojo: stats?.mojo || 0,
+        activity: goal?.activity || null,
+        sub_activity: goal?.sub_activity || null,
         displayed_badge_icon: (profile.badge as any)?.icon || null,
         displayed_badge_name: (profile.badge as any)?.name || null,
       };
@@ -224,21 +239,33 @@ export async function getPendingRequests(): Promise<{
     // Fetch statistics separately
     const { data: statistics, error: statsError } = await supabase
       .from('user_statistics')
-      .select('user_id, credibility, user_rank')
+      .select('user_id, credibility, user_rank, mojo')
       .in('user_id', allUserIds);
 
     if (statsError) {
       throw statsError;
     }
 
+    // Fetch goals for all user IDs
+    const { data: goals, error: goalsError } = await supabase
+      .from('user_goals')
+      .select('user_id, activity, sub_activity')
+      .in('user_id', allUserIds);
+
+    if (goalsError) {
+      throw goalsError;
+    }
+
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
     const statsMap = new Map(statistics?.map(s => [s.user_id, s]) || []);
+    const goalsMap = new Map(goals?.map(g => [g.user_id, g]) || []);
 
     // Map received requests
     const received: PendingFriendRequest[] = receivedFriendships.map(f => {
       const otherUserId = f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1;
       const profile = profileMap.get(otherUserId);
       const stats = statsMap.get(otherUserId);
+      const goal = goalsMap.get(otherUserId);
 
       return {
         friendship_id: f.id,
@@ -247,6 +274,9 @@ export async function getPendingRequests(): Promise<{
         avatar_url: profile?.avatar_url || null,
         user_rank: stats?.user_rank || 1,
         credibility: stats?.credibility || 50,
+        mojo: stats?.mojo || 0,
+        activity: goal?.activity || null,
+        sub_activity: goal?.sub_activity || null,
         displayed_badge_icon: (profile?.badge as any)?.icon || null,
         displayed_badge_name: (profile?.badge as any)?.name || null,
         is_requester: false,
@@ -258,6 +288,7 @@ export async function getPendingRequests(): Promise<{
       const otherUserId = f.user_id_1 === user.id ? f.user_id_2 : f.user_id_1;
       const profile = profileMap.get(otherUserId);
       const stats = statsMap.get(otherUserId);
+      const goal = goalsMap.get(otherUserId);
 
       return {
         friendship_id: f.id,
@@ -266,6 +297,9 @@ export async function getPendingRequests(): Promise<{
         avatar_url: profile?.avatar_url || null,
         user_rank: stats?.user_rank || 1,
         credibility: stats?.credibility || 50,
+        mojo: stats?.mojo || 0,
+        activity: goal?.activity || null,
+        sub_activity: goal?.sub_activity || null,
         displayed_badge_icon: (profile?.badge as any)?.icon || null,
         displayed_badge_name: (profile?.badge as any)?.name || null,
         is_requester: true,
