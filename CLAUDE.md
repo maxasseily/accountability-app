@@ -95,8 +95,11 @@ accountability-app/
 │   └── (app)/                # Protected app route group (tab-based navigation)
 │       ├── _layout.tsx       # Tab navigator with 4 tabs
 │       ├── home.tsx          # Home screen with photo upload & goal progress
-│       ├── feed.tsx          # Feed screen showing group posts for current week
+│       ├── feed.tsx          # Feed screen showing group & friend posts
 │       ├── statistics.tsx    # Personal stats & group leaderboard
+│       ├── friends/          # Friends management screens
+│       │   ├── _layout.tsx   # Friends route layout
+│       │   └── index.tsx     # Friends list & add friends (tab-based)
 │       └── groups/           # Group management screens
 │           ├── index.tsx     # Groups overview with members & arena quests
 │           ├── create.tsx    # Create new group
@@ -118,6 +121,10 @@ accountability-app/
 │   │   │   ├── MessageBubble.tsx
 │   │   │   ├── MessageInput.tsx
 │   │   │   └── MessageList.tsx
+│   │   ├── friends/          # Friends components
+│   │   │   ├── UserProfileCard.tsx    # Reusable profile card
+│   │   │   ├── AddFriendsTab.tsx      # Search & send requests
+│   │   │   └── FriendsListTab.tsx     # Friends list & pending requests
 │   │   ├── arena/            # Arena/quest components
 │   │   │   ├── ArenaMemberList.tsx
 │   │   │   ├── QuestsSection.tsx
@@ -137,13 +144,15 @@ accountability-app/
 │   │   ├── groups.ts         # TypeScript types for groups
 │   │   ├── goals.ts          # TypeScript types for goals
 │   │   ├── statistics.ts     # TypeScript types for statistics
+│   │   ├── friends.ts        # TypeScript types for friends
 │   │   └── arena.ts          # TypeScript types for quests
 │   └── utils/
 │       ├── colors.ts         # Futuristic theme colors
 │       ├── spacing.ts        # Spacing constants
 │       ├── validation.ts     # Form validation helpers
 │       ├── dailyPhoto.ts     # Photo upload/fetch logic
-│       ├── feed.ts           # Feed posts fetching and week logic
+│       ├── feed.ts           # Feed posts (group & friends) + week logic
+│       ├── friends.ts        # Friend operations (search, add, accept, remove)
 │       ├── groups.ts         # Group creation/join logic
 │       └── arenaQuests.ts    # Quest logic
 ├── assets/                   # App icons, splash screens, fonts, images
@@ -201,13 +210,15 @@ This project uses **Expo Router** for file-based routing with **route groups**.
 
 **Protected App (tab-based navigation with 4 tabs):**
 - `/(app)/home` - Home screen with daily photo upload and goal progress tracking
-- `/(app)/feed` - Feed screen showing group members' posts for the current week (Monday-based)
+- `/(app)/feed` - Feed screen showing group members' and friends' posts for the current week (Monday-based)
+- `/(app)/friends/` - Friends management screens
+  - `index` - Friends list and add friends (tab-based: Friends List / Add Friends)
 - `/(app)/groups/` - Group management screens with arena quest functionality
   - `index` - View group members, their photos, and arena quests (alliance, battle, prophecy, curse, speculation)
   - `create` - Create new group with 6-digit join code
   - `join` - Join existing group
   - `chat` - Group chat with real-time messaging
-- `/(app)/statistics` - Personal stats dashboard and group leaderboard
+- `/(app)/statistics` - Personal stats dashboard and group leaderboard (includes friend count)
 
 ### Route Groups
 
@@ -258,19 +269,25 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<production-anon-key>
 **Database Schema**:
 
 **User Data:**
-- `profiles` - User profile information (full_name, email, avatar_url)
-- `user_statistics` - Credibility score (0-100), mojo (currency), lifetime goals logged
+- `profiles` - User profile information (username, email, avatar_url, displayed_badge_id)
+- `user_statistics` - Credibility score (0-100), mojo (currency), lifetime goals logged, user_rank
 - `user_goals` - Weekly running goals with progress tracking (current_progress, week_start_date, completion_dates)
 - `daily_photos` - Daily photo uploads (user_id, date, photo_url, uploaded_at)
 
-**Groups:**
+**Social Features:**
+- `friendships` - Bidirectional friend relationships using LEAST/GREATEST pattern
+  - Status: pending, accepted, blocked
+  - Includes requester_id to track who sent request
+  - RLS policies allow both users to view relationship
+  - Friends can view each other's profiles, statistics, and daily photos
 - `groups` - Group metadata (name, join_code, created_by)
 - `group_members` - User-group membership relationships
 - `group_chat_messages` - Real-time group chat messages
 
 **Gamification:**
-- `arena_quests` - Quest interactions between group members (Alliance, Battle, Prophecy, Curse)
+- `arena_quests` - Quest interactions between group members (Alliance, Battle, Prophecy, Curse, Speculation)
   - Constraints prevent duplicate pending quests of same type between users
+- `badges` - Achievement badges users can earn and display
 
 **Key Features:**
 - Row Level Security (RLS) enabled on all tables for data protection

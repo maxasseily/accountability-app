@@ -138,6 +138,12 @@ export default function AppLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }
