@@ -5,24 +5,25 @@ import { supabase } from '../lib/supabase';
 interface Profile {
   id: string;
   email: string;
-  full_name: string | null;
+  username: string;
   avatar_url: string | null;
 }
 
 interface User {
   id: string;
   email: string;
-  name: string;
+  username: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   session: Session | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  checkUsernameAvailability: (username: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('username')
         .eq('id', supabaseUser.id)
         .single();
 
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({
           id: supabaseUser.id,
           email: supabaseUser.email || '',
-          name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+          username: supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'user',
         });
         return;
       }
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: profile?.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        username: profile?.username || supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'user',
       });
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -140,19 +141,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        username: supabaseUser.user_metadata?.username || supabaseUser.email?.split('@')[0] || 'user',
       });
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
+    // First, look up the email from the username (case-insensitive)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email')
+      .ilike('username', username)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      throw new Error('Invalid username or password');
+    }
+
+    // Now sign in with the email
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: profile.email,
       password,
     });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error('Invalid username or password');
     }
 
     if (data.user) {
@@ -160,18 +173,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (username: string, email: string, password: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: name,
+          username: username,
         },
       },
     });
 
     if (error) {
+      // Check if it's a duplicate username error
+      if (error.message?.includes('duplicate key') || error.message?.includes('profiles_username_key')) {
+        throw new Error('Username already taken! Try something else.');
+      }
       throw new Error(error.message);
     }
 
@@ -182,8 +199,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data.user) {
-      await loadUserProfile(data.user);
+      try {
+        await loadUserProfile(data.user);
+      } catch (profileError: any) {
+        // Check if it's a duplicate username error from the database trigger
+        if (profileError?.message?.includes('duplicate key') ||
+            profileError?.message?.includes('profiles_username_key') ||
+            profileError?.message?.includes('unique constraint')) {
+          // Clean up the auth user since profile creation failed
+          await supabase.auth.signOut();
+          throw new Error('Username already taken! Try something else.');
+        }
+        throw profileError;
+      }
     }
+  };
+
+  const checkUsernameAvailability = async (username: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .ilike('username', username)
+      .maybeSingle();
+
+    // If no data is found (null), username is available
+    // If data is found, username is taken
+    return data === null;
   };
 
   const logout = async () => {
@@ -217,6 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         logout,
         resetPassword,
+        checkUsernameAvailability,
       }}
     >
       {children}

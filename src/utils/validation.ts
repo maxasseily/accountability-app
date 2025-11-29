@@ -42,6 +42,24 @@ export const validateName = (name: string): string | null => {
   return null;
 };
 
+export const validateUsername = (username: string): string | null => {
+  if (!username) {
+    return 'Username is required';
+  }
+  if (username.length < 3) {
+    return 'Username must be at least 3 characters';
+  }
+  if (username.length > 20) {
+    return 'Username must be 20 characters or less';
+  }
+  // Allow letters, numbers, underscores, and hyphens
+  const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+  if (!usernameRegex.test(username)) {
+    return 'Username can only contain letters, numbers, underscores, and hyphens';
+  }
+  return null;
+};
+
 export const getPasswordStrength = (
   password: string
 ): { strength: 'weak' | 'medium' | 'strong'; score: number } => {

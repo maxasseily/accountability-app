@@ -115,7 +115,7 @@ export async function getUserGroup(): Promise<GroupWithMembers | null> {
   const userIds = members.map(m => m.user_id);
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, email, full_name, avatar_url, created_at, updated_at')
+    .select('id, email, username, avatar_url, created_at, updated_at')
     .in('id', userIds);
 
   if (profilesError) {
@@ -134,7 +134,7 @@ export async function getUserGroup(): Promise<GroupWithMembers | null> {
     profile: profileMap.get(member.user_id) || {
       id: member.user_id,
       email: 'unknown@example.com',
-      full_name: null,
+      username: 'unknown',
       avatar_url: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

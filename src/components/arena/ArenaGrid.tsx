@@ -172,7 +172,7 @@ export default function ArenaGrid({ members, currentUserId, onQuestSelect, onSpe
 
                 <View style={styles.membersList}>
                   {selectableMembers.map((member) => {
-                    const displayName = member.profile.full_name || member.profile.email.split('@')[0] || 'User';
+                    const displayName = member.profile.username || member.profile.email.split('@')[0] || 'user';
                     return (
                       <TouchableOpacity
                         key={member.id}

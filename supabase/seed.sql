@@ -35,7 +35,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Alice Johnson"}'::jsonb,
+  '{"username":"alice"}'::jsonb,
   now(),
   now(),
   '',
@@ -95,7 +95,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Bob Smith"}'::jsonb,
+  '{"username":"bob"}'::jsonb,
   now(),
   now(),
   '',
@@ -155,7 +155,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Charlie Davis"}'::jsonb,
+  '{"username":"charlie"}'::jsonb,
   now(),
   now(),
   '',
@@ -215,7 +215,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Diana Martinez"}'::jsonb,
+  '{"username":"diana"}'::jsonb,
   now(),
   now(),
   '',
@@ -275,7 +275,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Evan Wilson"}'::jsonb,
+  '{"username":"evan"}'::jsonb,
   now(),
   now(),
   '',
@@ -335,7 +335,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Fiona Lee"}'::jsonb,
+  '{"username":"fiona"}'::jsonb,
   now(),
   now(),
   '',
@@ -395,7 +395,7 @@ values (
   now(),
   now(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Grace Chen"}'::jsonb,
+  '{"username":"grace"}'::jsonb,
   now(),
   now(),
   '',
@@ -426,87 +426,87 @@ values (
 
 -- Now insert the profiles (these will be auto-created by the trigger, but we'll update them with our custom data)
 -- User 1: alice@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000001'::uuid,
   'alice@example.com',
-  'Alice Johnson',
+  'alice',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 2: bob@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000002'::uuid,
   'bob@example.com',
-  'Bob Smith',
+  'bob',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 3: charlie@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000003'::uuid,
   'charlie@example.com',
-  'Charlie Davis',
+  'charlie',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 4: diana@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000004'::uuid,
   'diana@example.com',
-  'Diana Martinez',
+  'diana',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Diana'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 5: evan@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000005'::uuid,
   'evan@example.com',
-  'Evan Wilson',
+  'evan',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Evan'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 6: fiona@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000006'::uuid,
   'fiona@example.com',
-  'Fiona Lee',
+  'fiona',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Fiona'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- User 7: grace@example.com
-insert into public.profiles (id, email, full_name, avatar_url)
+insert into public.profiles (id, email, username, avatar_url)
 values (
   '00000000-0000-0000-0000-000000000007'::uuid,
   'grace@example.com',
-  'Grace Chen',
+  'grace',
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Grace'
 ) on conflict (id) do update set
   email = excluded.email,
-  full_name = excluded.full_name,
+  username = excluded.username,
   avatar_url = excluded.avatar_url;
 
 -- Create a sample group

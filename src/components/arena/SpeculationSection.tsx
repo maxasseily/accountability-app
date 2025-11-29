@@ -233,7 +233,7 @@ export default function SpeculationSection({
                     <View style={styles.speculationsList}>
                       <Text style={styles.sectionLabel}>Open Offers</Text>
                       {pendingSpeculations.map((speculation) => {
-                        const senderName = speculation.sender_profile.full_name || speculation.sender_profile.email.split('@')[0];
+                        const senderName = speculation.sender_profile.username || speculation.sender_profile.email.split('@')[0];
                         const isOwnSpeculation = speculation.sender_id === currentUserId;
                         const sideLabel = speculation.speculation_creator_side ? 'FOR' : 'AGAINST';
 
@@ -293,8 +293,8 @@ export default function SpeculationSection({
                     <View style={styles.speculationsList}>
                       <Text style={styles.sectionLabel}>Ongoing Speculations</Text>
                       {acceptedSpeculations.map((speculation) => {
-                        const creatorName = speculation.sender_profile.full_name || speculation.sender_profile.email.split('@')[0];
-                        const accepterName = speculation.receiver_profile.full_name || speculation.receiver_profile.email.split('@')[0];
+                        const creatorName = speculation.sender_profile.username || speculation.sender_profile.email.split('@')[0];
+                        const accepterName = speculation.receiver_profile.username || speculation.receiver_profile.email.split('@')[0];
                         const sideLabel = speculation.speculation_creator_side ? 'FOR' : 'AGAINST';
                         const canResolveThis = canResolve(speculation);
 
@@ -354,8 +354,8 @@ export default function SpeculationSection({
                     <View style={styles.speculationsList}>
                       <Text style={styles.sectionLabel}>Recent Results</Text>
                       {resolvedSpeculations.map((speculation) => {
-                        const creatorName = speculation.sender_profile.full_name || speculation.sender_profile.email.split('@')[0];
-                        const accepterName = speculation.receiver_profile.full_name || speculation.receiver_profile.email.split('@')[0];
+                        const creatorName = speculation.sender_profile.username || speculation.sender_profile.email.split('@')[0];
+                        const accepterName = speculation.receiver_profile.username || speculation.receiver_profile.email.split('@')[0];
 
                         // Determine winner based on result and creator's side
                         const creatorWon = speculation.speculation_result === speculation.speculation_creator_side;
