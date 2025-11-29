@@ -983,7 +983,7 @@ export default function StatisticsScreen() {
                   <View style={styles.leaderboardCard}>
                     {groupMemberStats.map((member, index) => {
                       const memberRank = getUserRank(member.userRank);
-                      const displayName = member.isCurrentUser ? 'You' : (member.fullName || 'Unknown');
+                      const displayName = member.isCurrentUser ? 'You' : (member.username || 'Unknown');
                       return (
                         <View
                           key={member.userId}
