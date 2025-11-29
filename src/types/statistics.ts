@@ -6,6 +6,7 @@ export interface UserStatistics {
   lifetimeGoalsLogged: number;
   mojo: number;
   userRank: number;
+  friendCount?: number;
   createdAt: string;
   updatedAt: string;
 }

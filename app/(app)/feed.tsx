@@ -1,22 +1,20 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, RefreshControl, Modal, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, RefreshControl, Modal, Pressable, Dimensions, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { getGroupFeedPosts, subscribeToFeedChanges, FeedPost } from '../../src/utils/feed';
 import { useAuth } from '../../src/context/AuthContext';
-import { useGroup } from '../../src/context/GroupContext';
-import NoGroupState from '../../src/components/groups/NoGroupState';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function FeedScreen() {
   const { user } = useAuth();
-  const { group } = useGroup();
   const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,23 +75,6 @@ export default function FeedScreen() {
     );
   }
 
-  if (!group) {
-    return (
-      <GradientBackground>
-        <StatusBar style="light" hidden={true} />
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={[
-            styles.contentContainer,
-            { paddingTop: spacing.screenPaddingTopCompact + insets.top },
-          ]}
-        >
-          <NoGroupState />
-        </ScrollView>
-      </GradientBackground>
-    );
-  }
-
   return (
     <GradientBackground>
       <StatusBar style="light" hidden={true} />
@@ -112,16 +93,27 @@ export default function FeedScreen() {
           />
         }
       >
-        <Text style={styles.headerText}>This Week's Feed</Text>
-        <Text style={styles.subheaderText}>
-          Posts from your group this week
-        </Text>
+        <View style={styles.headerWithButton}>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerText}>This Week's Feed</Text>
+            <Text style={styles.subheaderText}>
+              Posts from your group and friends
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.friendsButton}
+            onPress={() => router.push('/(app)/friends')}
+          >
+            <MaterialCommunityIcons name="account-multiple" size={24} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
 
         {posts.length === 0 ? (
           <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="image-off-outline" size={64} color={colors.textMuted} />
             <Text style={styles.emptyStateText}>No posts yet this week</Text>
             <Text style={styles.emptyStateSubtext}>
-              Posts will appear here when group members upload their daily photos
+              Add friends or join a group to see their daily photos here
             </Text>
           </View>
         ) : (
@@ -138,7 +130,7 @@ export default function FeedScreen() {
                     ) : (
                       <View style={[styles.avatar, styles.avatarPlaceholder]}>
                         <Text style={styles.avatarText}>
-                          {post.profile.full_name?.[0]?.toUpperCase() || '?'}
+                          {post.profile.username?.[0]?.toUpperCase() || '?'}
                         </Text>
                       </View>
                     )}
@@ -146,7 +138,7 @@ export default function FeedScreen() {
                   <View style={styles.postInfo}>
                     <View style={styles.userNameRow}>
                       <Text style={styles.userName}>
-                        {post.profile.full_name || 'Unknown User'}
+                        {post.profile.username || 'Unknown User'}
                         {post.user_id === user?.id && (
                           <Text style={styles.youBadge}> (You)</Text>
                         )}
@@ -227,6 +219,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerWithButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   headerText: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -239,7 +240,16 @@ const styles = StyleSheet.create({
   subheaderText: {
     fontSize: 16,
     color: colors.textMuted,
-    marginBottom: 24,
+  },
+  friendsButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.glassLight,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',

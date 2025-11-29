@@ -785,92 +785,123 @@ export default function StatisticsScreen() {
               {/* Data Tab Content */}
               {personalTab === 'data' && (
                 <>
-                  {/* Current Credibility Score */}
-              <View style={styles.credibilityScoreSection}>
-                <View style={styles.sectionHeaderWithInfo}>
-                  <Text style={styles.sectionSubtitle}>Current Credibility</Text>
-                  <TouchableOpacity
-                    style={styles.infoButtonSmall}
-                    onPress={() => setShowCredibilityInfo(true)}
-                  >
-                    <MaterialCommunityIcons name="help-circle-outline" size={20} color={colors.accent} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.credibilityScoreCard}>
-                  {isStatsLoading ? (
-                    <ActivityIndicator color={colors.accent} />
-                  ) : (
-                    <View style={styles.scoreDisplay}>
-                      <Text style={styles.largeScoreValue}>{Math.max(0, Math.round(currentScore))}</Text>
-                      <Text style={styles.scoreOutOf}>/100</Text>
+                  {/* Stats Section */}
+                  <View style={styles.statsSection}>
+                    <Text style={styles.sectionSubtitle}>{user?.username}'s Stats</Text>
+
+                    {/* Row 1: Credibility and Mojo */}
+                    <View style={styles.statSummaryRow}>
+                    <View style={styles.statCardWrapper}>
+                      <LinearGradient
+                        colors={['rgba(6, 182, 212, 0.4)', 'rgba(6, 182, 212, 0.2)', 'rgba(6, 182, 212, 0.1)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.statCard}
+                      >
+                        <Text style={styles.statCardLabel}>Credibility</Text>
+                        {isStatsLoading ? (
+                          <ActivityIndicator color={colors.accent} size="small" />
+                        ) : (
+                          <Text style={styles.statCardValue}>{statistics?.credibility ?? 50}</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.statCardWrapper}>
+                      <LinearGradient
+                        colors={['rgba(255, 149, 0, 0.4)', 'rgba(255, 149, 0, 0.2)', 'rgba(255, 149, 0, 0.1)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.statCard}
+                      >
+                        <Text style={styles.statCardLabel}>Mojo</Text>
+                        {isStatsLoading ? (
+                          <ActivityIndicator color={colors.accent} size="small" />
+                        ) : (
+                          <Text style={styles.statCardValue}>{statistics ? formatMojo(statistics.mojo) : '0'}</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                  </View>
+
+                  {/* Row 2: Goals Logged and Friends */}
+                  <View style={styles.statSummaryRow}>
+                    <View style={styles.statCardWrapper}>
+                      <LinearGradient
+                        colors={['rgba(255, 0, 110, 0.4)', 'rgba(255, 0, 110, 0.2)', 'rgba(255, 0, 110, 0.1)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.statCard}
+                      >
+                        <Text style={styles.statCardLabel}>Goals Logged</Text>
+                        {isStatsLoading ? (
+                          <ActivityIndicator color={colors.accent} size="small" />
+                        ) : (
+                          <Text style={styles.statCardValue}>{statistics?.lifetimeGoalsLogged ?? 0}</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.statCardWrapper}>
+                      <LinearGradient
+                        colors={['rgba(139, 92, 246, 0.4)', 'rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.1)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.statCard}
+                      >
+                        <Text style={styles.statCardLabel}>Friends</Text>
+                        {isStatsLoading ? (
+                          <ActivityIndicator color={colors.accent} size="small" />
+                        ) : (
+                          <Text style={styles.statCardValue}>{statistics?.friendCount ?? 0}</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                  </View>
+                  </View>
+
+                  {/* Credibility Over Time Chart */}
+                  <View style={styles.chartSection}>
+                    <View style={styles.sectionHeaderWithToggle}>
+                      <Text style={styles.sectionSubtitle}>Credibility Over Time</Text>
+                      <CompactToggle
+                        options={[
+                          { value: 'week', label: 'W' },
+                          { value: 'month', label: 'M' },
+                          { value: 'sixMonth', label: '6M' },
+                        ]}
+                        selected={timePeriod}
+                        onSelect={(value) => setTimePeriod(value as TimePeriod)}
+                      />
+                    </View>
+                    <View style={styles.chartContainer}>
+                      <CredibilityLineChart data={credibilityData} period={timePeriod} />
+                    </View>
+                  </View>
+
+                  {/* Goal Progress Bar Chart */}
+                  {hasGoal && goal && goalData && (
+                    <View style={styles.chartSection}>
+                      <View style={styles.sectionHeaderWithToggle}>
+                        <Text style={styles.sectionSubtitle}>Goal Progress</Text>
+                        <CompactToggle
+                          options={[
+                            { value: 'week', label: 'W' },
+                            { value: 'month', label: 'M' },
+                            { value: 'sixMonth', label: '6M' },
+                          ]}
+                          selected={timePeriod}
+                          onSelect={(value) => setTimePeriod(value as TimePeriod)}
+                        />
+                      </View>
+                      <View style={styles.chartContainer}>
+                        <GoalProgressBarChart data={goalData.data} goalTotal={goalData.goalTotal} />
+                      </View>
+                      <View style={styles.goalProgressInfo}>
+                        <Text style={styles.goalProgressText}>
+                          {goalData.data[goalData.data.length - 1].completed} / {goalData.goalTotal} completed
+                        </Text>
+                      </View>
                     </View>
                   )}
-                </View>
-              </View>
-
-              <View style={styles.statSummaryRow}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statCardLabel}>Lifetime Goals Logged</Text>
-                  {isStatsLoading ? (
-                    <ActivityIndicator color={colors.accent} size="small" />
-                  ) : (
-                    <Text style={styles.statCardValue}>{statistics?.lifetimeGoalsLogged ?? 0}</Text>
-                  )}
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statCardLabel}>Mojo</Text>
-                  {isStatsLoading ? (
-                    <ActivityIndicator color={colors.accent} size="small" />
-                  ) : (
-                    <Text style={styles.statCardValue}>{statistics ? formatMojo(statistics.mojo) : '0'}</Text>
-                  )}
-                </View>
-              </View>
-
-              {/* Credibility Over Time Chart */}
-              <View style={styles.chartSection}>
-                <View style={styles.sectionHeaderWithToggle}>
-                  <Text style={styles.sectionSubtitle}>Credibility Over Time</Text>
-                  <CompactToggle
-                    options={[
-                      { value: 'week', label: 'W' },
-                      { value: 'month', label: 'M' },
-                      { value: 'sixMonth', label: '6M' },
-                    ]}
-                    selected={timePeriod}
-                    onSelect={(value) => setTimePeriod(value as TimePeriod)}
-                  />
-                </View>
-                <View style={styles.chartContainer}>
-                  <CredibilityLineChart data={credibilityData} period={timePeriod} />
-                </View>
-              </View>
-
-              {/* Goal Progress Bar Chart */}
-              {hasGoal && goal && goalData && (
-                <View style={styles.chartSection}>
-                  <View style={styles.sectionHeaderWithToggle}>
-                    <Text style={styles.sectionSubtitle}>Goal Progress</Text>
-                    <CompactToggle
-                      options={[
-                        { value: 'week', label: 'W' },
-                        { value: 'month', label: 'M' },
-                        { value: 'sixMonth', label: '6M' },
-                      ]}
-                      selected={timePeriod}
-                      onSelect={(value) => setTimePeriod(value as TimePeriod)}
-                    />
-                  </View>
-                  <View style={styles.chartContainer}>
-                    <GoalProgressBarChart data={goalData.data} goalTotal={goalData.goalTotal} />
-                  </View>
-                  <View style={styles.goalProgressInfo}>
-                    <Text style={styles.goalProgressText}>
-                      {goalData.data[goalData.data.length - 1].completed} / {goalData.goalTotal} completed
-                    </Text>
-                  </View>
-                </View>
-              )}
 
                 </>
               )}
@@ -1175,6 +1206,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  statsSection: {
+    marginBottom: 32,
   },
   infoButtonSmall: {
     padding: 4,
@@ -1193,27 +1228,33 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     marginBottom: 24,
   },
-  statCard: {
+  statCardWrapper: {
     width: '48%',
-    backgroundColor: colors.glassLight,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  statCard: {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 110,
+    minHeight: 90,
+  },
+  statCardFull: {
+    width: '100%',
   },
   statCardLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
   statCardValue: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: colors.textPrimary,
   },
