@@ -389,10 +389,12 @@ const RankLadderView = ({
               style={[
                 styles.rankLadderItem,
                 isCurrentRank && styles.rankLadderItemCurrent,
-                !isUnlocked && styles.rankLadderItemLocked,
               ]}
             >
-              <View style={styles.rankLadderLeft}>
+              <View style={[
+                styles.rankLadderLeft,
+                !isUnlocked && styles.rankLadderContentLocked,
+              ]}>
                 <MaterialCommunityIcons
                   name={rank.icon as any}
                   size={40}
@@ -428,7 +430,7 @@ const RankLadderView = ({
                       style={styles.upgradeButton}
                       onPress={() => handleUpgradePress(rank.id)}
                     >
-                      <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                      <Text style={styles.upgradeButtonText}>UPGRADE?</Text>
                     </TouchableOpacity>
                   ) : (
                     <View style={styles.lockedBadge}>
@@ -1844,6 +1846,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 8,
   },
+  rankLadderContentLocked: {
+    opacity: 0.5,
+  },
   rankLadderInfo: {
     flex: 1,
   },
@@ -1881,13 +1886,13 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     alignSelf: 'flex-start',
   },
   upgradeButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: colors.textPrimary,
   },
@@ -1924,6 +1929,7 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
@@ -1932,12 +1938,13 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   confirmButtonGradient: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
   },
   confirmButtonText: {
     fontSize: 16,
