@@ -22,9 +22,9 @@ export default function UserProfileCard({
 
   // Determine goal display text
   const getGoalDisplay = () => {
-    if ('goal_type' in profile && profile.goal_type && profile.sub_activity) {
+    if ('activity' in profile && profile.activity && profile.sub_activity) {
       const subActivityConfig = getSubActivityConfig(profile.sub_activity as any);
-      return subActivityConfig?.name || profile.goal_type;
+      return subActivityConfig?.name || profile.activity;
     }
     return 'No goal set';
   };
@@ -118,7 +118,7 @@ export default function UserProfileCard({
           </View>
 
           {/* Goal */}
-          {'goal_type' in profile && (
+          {'activity' in profile && (
             <View style={styles.goalRow}>
               <MaterialCommunityIcons name="target" size={16} color={colors.textMuted} />
               <Text style={styles.goalText}>{getGoalDisplay()}</Text>
