@@ -9,12 +9,13 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => {
-        // Hide tab bar on nested screens within groups tab
-        // When navigating to groups/chat, groups/create, or groups/join,
+        // Hide tab bar on nested screens within groups tab and post-comments
+        // When navigating to groups/chat, groups/create, groups/join, or post-comments,
         // the navigation state will show the nested route name
         const focusedRouteName = getFocusedRouteNameFromRoute(route) ?? 'index';
         const shouldHideTabBar =
-          route.name === 'groups' && focusedRouteName !== 'index';
+          (route.name === 'groups' && focusedRouteName !== 'index') ||
+          route.name === 'post-comments';
 
         return {
           headerShown: false,
@@ -140,6 +141,12 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="friends"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="post-comments"
         options={{
           href: null, // Hide from tab bar
         }}
