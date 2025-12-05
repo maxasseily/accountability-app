@@ -5,7 +5,7 @@ import { colors } from '../../utils/colors';
 import { useState, useEffect } from 'react';
 import BadgeCard from './BadgeCard';
 import type { BadgeWithStatus, BadgeCategory } from '../../types/badges';
-import { getBadgesWithStatus } from '../../lib/badges';
+import { getBadgesWithStatus, getDisplayedBadge } from '../../lib/badges';
 
 interface BadgeGridProps {
   userId: string;
@@ -23,6 +23,7 @@ const CATEGORY_ORDER: BadgeCategory[] = ['streak', 'quest', 'mojo', 'milestone',
 
 export default function BadgeGrid({ userId }: BadgeGridProps) {
   const [badges, setBadges] = useState<BadgeWithStatus[]>([]);
+  const [displayedBadgeId, setDisplayedBadgeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -32,8 +33,12 @@ export default function BadgeGrid({ userId }: BadgeGridProps) {
   const loadBadges = async () => {
     setIsLoading(true);
     try {
-      const badgesData = await getBadgesWithStatus(userId);
+      const [badgesData, displayedBadge] = await Promise.all([
+        getBadgesWithStatus(userId),
+        getDisplayedBadge(userId),
+      ]);
       setBadges(badgesData);
+      setDisplayedBadgeId(displayedBadge?.id || null);
     } catch (error) {
       console.error('Error loading badges:', error);
     } finally {
@@ -81,7 +86,13 @@ export default function BadgeGrid({ userId }: BadgeGridProps) {
             <Text style={styles.categoryTitle}>{CATEGORY_LABELS[category]}</Text>
             <View style={styles.badgeGrid}>
               {categoryBadges.map((badge) => (
-                <BadgeCard key={badge.id} badge={badge} />
+                <BadgeCard
+                  key={badge.id}
+                  badge={badge}
+                  userId={userId}
+                  currentDisplayedBadgeId={displayedBadgeId}
+                  onDisplayBadgeSet={loadBadges}
+                />
               ))}
             </View>
           </View>
