@@ -142,10 +142,14 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   const getProgress = (): GoalProgress | null => {
     if (!goal) return null;
 
+    // Cap percentage at 700% (7 times the goal, max logs per week)
+    const maxPercentage = 700;
+    const calculatedPercentage = (goal.currentProgress / goal.frequency) * 100;
+
     return {
       completed: goal.currentProgress,
       total: goal.frequency,
-      percentage: (goal.currentProgress / goal.frequency) * 100,
+      percentage: Math.min(calculatedPercentage, maxPercentage),
     };
   };
 
