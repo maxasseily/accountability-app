@@ -12,6 +12,7 @@ import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { pickDailyPhoto, takeDailyPhoto, uploadDailyPhoto, getTodayPhoto, requestPermissions, DailyPhoto } from '../../src/utils/dailyPhoto';
 import { getUnreadNotifications, markNotificationAsRead } from '../../src/lib/notifications';
+import { getSubActivityConfig, formatGoalText } from '../../src/utils/goalConfig';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -100,11 +101,11 @@ export default function HomeScreen() {
   };
 
   const handleSetGoal = () => {
-    router.push('/(onboarding)/goal-selection');
+    router.push('/(onboarding)/activity-selection');
   };
 
   const handleChangeGoal = () => {
-    router.push('/(onboarding)/goal-selection');
+    router.push('/(onboarding)/activity-selection');
   };
 
   const showPhotoOptions = () => {
@@ -189,9 +190,10 @@ export default function HomeScreen() {
             : `+${result.mojoGained} mojo earned!`;
 
           // Show main success alert
+          const subActivityConfig = getSubActivityConfig(goal!.subActivity);
           Alert.alert(
             'Success!',
-            `Photo uploaded & run logged!\n\n${mojoMessage}\n\nKeep up the great work!`,
+            `Photo uploaded & goal logged!\n\n${mojoMessage}\n\nKeep up the great work!`,
             [{ text: 'OK', onPress: async () => {
               // Check for alliance bonus after main alert is dismissed
               if (result.hasAllianceBonus && user) {
@@ -223,11 +225,11 @@ export default function HomeScreen() {
             }}]
           );
         } catch (error) {
-          console.error('Error logging run:', error);
-          // Photo uploaded successfully, but run logging failed
+          console.error('Error logging goal:', error);
+          // Photo uploaded successfully, but goal logging failed
           Alert.alert(
             'Photo Uploaded',
-            'Your photo was uploaded, but there was an issue logging your run. You can try logging it manually.'
+            'Your photo was uploaded, but there was an issue logging your goal. You can try logging it manually.'
           );
         }
       } else {
@@ -244,7 +246,7 @@ export default function HomeScreen() {
 
   const handleLogRun = async () => {
     if (!canLogToday()) {
-      Alert.alert('Already Logged', 'You have already logged a run today! Come back tomorrow.');
+      Alert.alert('Already Logged', 'You have already logged your goal today! Come back tomorrow.');
       return;
     }
 
@@ -260,7 +262,7 @@ export default function HomeScreen() {
       // Show main success alert
       Alert.alert(
         'Success!',
-        `Run logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`,
+        `Goal logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`,
         [{ text: 'OK', onPress: async () => {
           // Check for alliance bonus after main alert is dismissed
           if (result.hasAllianceBonus && user) {
@@ -292,11 +294,11 @@ export default function HomeScreen() {
         }}]
       );
     } catch (error) {
-      console.error('Error logging run:', error);
+      console.error('Error logging goal:', error);
       if (error instanceof Error && error.message === 'Already logged a run today') {
-        Alert.alert('Already Logged', 'You have already logged a run today!');
+        Alert.alert('Already Logged', 'You have already logged your goal today!');
       } else {
-        Alert.alert('Error', 'Failed to log run. Please try again.');
+        Alert.alert('Error', 'Failed to log goal. Please try again.');
       }
     } finally {
       setIsLoggingRun(false);
@@ -402,11 +404,15 @@ export default function HomeScreen() {
               <View style={styles.goalCard}>
                 <View style={styles.goalHeader}>
                   <View style={styles.goalTitleContainer}>
-                    <MaterialCommunityIcons name="run" size={32} color={colors.accent} />
+                    <MaterialCommunityIcons
+                      name={getSubActivityConfig(goal.subActivity)?.icon as any}
+                      size={32}
+                      color={colors.accent}
+                    />
                     <View>
                       <Text style={styles.goalLabel}>Your Goal</Text>
                       <Text style={styles.goalTitle}>
-                        Run {goal.frequency}x per week
+                        {formatGoalText(goal.subActivity, goal.frequency)}
                       </Text>
                     </View>
                   </View>
@@ -417,7 +423,7 @@ export default function HomeScreen() {
                   <View style={styles.progressHeader}>
                     <Text style={styles.progressLabel}>This Week's Progress</Text>
                     <Text style={styles.progressText}>
-                      {progress.completed}/{progress.total} runs
+                      {progress.completed}/{progress.total} completed
                     </Text>
                   </View>
 

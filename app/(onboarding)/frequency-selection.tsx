@@ -1,25 +1,36 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 import { useGoal } from '../../src/context/GoalContext';
 import { useState } from 'react';
+import { ActivityType, SubActivity } from '../../src/types/goals';
+import { getSubActivityConfig } from '../../src/utils/goalConfig';
 
 type FrequencyOption = 2 | 3 | 4;
 
 export default function FrequencySelectionScreen() {
+  const params = useLocalSearchParams();
+  const activity = params.activity as ActivityType;
+  const subActivity = params.subActivity as SubActivity;
+
   const { setGoal } = useGoal();
   const [isLoading, setIsLoading] = useState(false);
+
+  const subActivityConfig = getSubActivityConfig(subActivity);
 
   const handleSelectFrequency = async (frequency: FrequencyOption) => {
     if (frequency !== 3) return; // Only 3x/week is enabled
 
     try {
       setIsLoading(true);
-      await setGoal('running', frequency);
-      router.push('/(onboarding)/goal-confirmation');
+      await setGoal(activity, subActivity, frequency);
+      router.push({
+        pathname: '/(onboarding)/goal-confirmation',
+        params: { activity, subActivity, frequency: frequency.toString() },
+      });
     } catch (error) {
       console.error('Error setting goal:', error);
       alert('Failed to set goal. Please try again.');
@@ -47,7 +58,7 @@ export default function FrequencySelectionScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>How Often?</Text>
-        <Text style={styles.subtitle}>Choose your weekly running frequency</Text>
+        <Text style={styles.subtitle}>Choose your weekly {subActivityConfig?.actionNoun} frequency</Text>
 
         <View style={styles.optionsContainer}>
           {frequencies.map(({ value, enabled }) => (

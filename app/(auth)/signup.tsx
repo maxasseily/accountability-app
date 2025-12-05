@@ -64,7 +64,7 @@ export default function SignupScreen() {
     try {
       await signup(name, email, password);
       // Navigate to onboarding after successful signup
-      router.replace('/(onboarding)/goal-selection');
+      router.replace('/(onboarding)/activity-selection');
     } catch (error: any) {
       Alert.alert(
         'Signup Failed',

@@ -1,14 +1,21 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { colors } from '../../src/utils/colors';
 import { useGoal } from '../../src/context/GoalContext';
+import { SubActivity } from '../../src/types/goals';
+import { getSubActivityConfig, formatGoalText } from '../../src/utils/goalConfig';
 
 export default function GoalConfirmationScreen() {
+  const params = useLocalSearchParams();
+  const subActivity = params.subActivity as SubActivity;
+  const frequency = parseInt(params.frequency as string);
+
   const { goal } = useGoal();
+  const subActivityConfig = getSubActivityConfig(subActivity);
 
   const handleContinue = () => {
     router.push('/(onboarding)/credibility-mojo-intro');
@@ -37,9 +44,13 @@ export default function GoalConfirmationScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Your Goal</Text>
             <View style={styles.summaryContent}>
-              <MaterialCommunityIcons name="run" size={32} color={colors.accent} />
+              <MaterialCommunityIcons
+                name={subActivityConfig?.icon as any}
+                size={32}
+                color={colors.accent}
+              />
               <Text style={styles.summaryText}>
-                Run {goal?.frequency} times/week
+                {formatGoalText(subActivity, frequency || goal?.frequency || 3)}
               </Text>
             </View>
             <Text style={styles.summaryHint}>
