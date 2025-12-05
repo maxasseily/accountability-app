@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, ActionSheetIOS, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -342,7 +342,7 @@ export default function HomeScreen() {
                 style={styles.logoutButton}
                 onPress={handleLogout}
               >
-                <Ionicons name="log-out-outline" size={28} color={colors.textPrimary} />
+                <MaterialCommunityIcons name="logout" size={28} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -350,7 +350,7 @@ export default function HomeScreen() {
           {/* Daily Photo Upload Section */}
           <View style={styles.photoCard}>
             <View style={styles.photoHeader}>
-              <Ionicons name="camera" size={24} color={colors.accent} />
+              <MaterialCommunityIcons name="camera" size={24} color={colors.accent} />
               <Text style={styles.photoLabel}>Today's Photo</Text>
             </View>
 
@@ -389,7 +389,7 @@ export default function HomeScreen() {
 
             {todayPhoto && (
               <View style={styles.photoCompleted}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
+                <MaterialCommunityIcons name="check-circle" size={20} color={colors.accent} />
                 <Text style={styles.photoCompletedText}>Photo uploaded today!</Text>
               </View>
             )}
@@ -402,7 +402,7 @@ export default function HomeScreen() {
               <View style={styles.goalCard}>
                 <View style={styles.goalHeader}>
                   <View style={styles.goalTitleContainer}>
-                    <Ionicons name="fitness" size={32} color={colors.accent} />
+                    <MaterialCommunityIcons name="run" size={32} color={colors.accent} />
                     <View>
                       <Text style={styles.goalLabel}>Your Goal</Text>
                       <Text style={styles.goalTitle}>
@@ -450,7 +450,7 @@ export default function HomeScreen() {
                         ]}
                       >
                         {index < progress.completed && (
-                          <Ionicons name="checkmark" size={16} color={colors.textPrimary} />
+                          <MaterialCommunityIcons name="check" size={16} color={colors.textPrimary} />
                         )}
                       </View>
                     ))}
@@ -473,8 +473,8 @@ export default function HomeScreen() {
                         <ActivityIndicator size="small" color={colors.textPrimary} />
                       ) : (
                         <>
-                          <Ionicons
-                            name={canLog ? "checkmark-circle" : "checkmark-done-circle"}
+                          <MaterialCommunityIcons
+                            name={canLog ? "check-circle" : "check-all"}
                             size={24}
                             color={colors.textPrimary}
                           />
@@ -493,14 +493,14 @@ export default function HomeScreen() {
                   onPress={handleChangeGoal}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.changeGoalText}>Change Goal</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Motivational Message */}
               <View style={styles.motivationCard}>
-                <Ionicons name="flame" size={32} color={colors.accent} />
+                <MaterialCommunityIcons name="fire" size={32} color={colors.accent} />
                 <Text style={styles.motivationText}>
                   {progress.completed === progress.total
                     ? "Amazing! You've crushed your goal this week!"
@@ -513,7 +513,7 @@ export default function HomeScreen() {
           ) : (
             /* Show Set Goal CTA */
             <View style={styles.noGoalCard}>
-              <Ionicons name="flag-outline" size={64} color={colors.accent} />
+              <MaterialCommunityIcons name="flag-outline" size={64} color={colors.accent} />
               <Text style={styles.noGoalTitle}>Set Your Goal</Text>
               <Text style={styles.noGoalText}>
                 Start your journey by setting a weekly running goal
@@ -530,7 +530,7 @@ export default function HomeScreen() {
                   style={styles.setGoalGradient}
                 >
                   <Text style={styles.setGoalButtonText}>Set Your Goal</Text>
-                  <Ionicons name="arrow-forward" size={24} color={colors.textPrimary} />
+                  <MaterialCommunityIcons name="arrow-right" size={24} color={colors.textPrimary} />
                 </LinearGradient>
               </TouchableOpacity>
             </View>

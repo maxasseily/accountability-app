@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Modal, Animated, Switch, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Svg, Polyline, Line, Text as SvgText } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../../src/components/ui/GradientBackground';
 import { useGoal } from '../../src/context/GoalContext';
@@ -84,12 +84,12 @@ const PADDING = { top: 10, bottom: 30, left: 40, right: 10 };
 
 // Status ladder data
 const STATUS_LADDER = [
-  { id: 6, name: 'Veteran', minScore: 90, icon: 'trophy', color: colors.accent },
+  { id: 6, name: 'Veteran', minScore: 90, icon: 'crown', color: colors.accent },
   { id: 5, name: 'Expert', minScore: 75, icon: 'star', color: '#FFD700' },
-  { id: 4, name: 'Advanced', minScore: 60, icon: 'ribbon', color: '#C0C0C0' },
+  { id: 4, name: 'Advanced', minScore: 60, icon: 'trophy', color: '#C0C0C0' },
   { id: 3, name: 'Intermediate', minScore: 45, icon: 'medal', color: '#CD7F32' },
   { id: 2, name: 'Beginner', minScore: 25, icon: 'flag', color: colors.textSecondary },
-  { id: 1, name: 'Noob', minScore: 0, icon: 'egg', color: colors.textMuted },
+  { id: 1, name: 'Noob', minScore: 0, icon: 'egg-easter', color: colors.textMuted },
 ];
 
 // Max group size constant
@@ -109,10 +109,10 @@ const getCurrentStatus = (score: number) => {
 };
 
 // Helper function to get goal icon
-const getGoalIcon = (goalType: string | null): keyof typeof Ionicons.glyphMap => {
+const getGoalIcon = (goalType: string | null): keyof typeof MaterialCommunityIcons.glyphMap => {
   switch (goalType) {
     case 'running':
-      return 'walk';
+      return 'run';
     default:
       return 'flag';
   }
@@ -537,7 +537,7 @@ export default function StatisticsScreen() {
                     style={styles.infoButtonSmall}
                     onPress={() => setShowCredibilityInfo(true)}
                   >
-                    <Ionicons name="help-circle-outline" size={20} color={colors.accent} />
+                    <MaterialCommunityIcons name="help-circle-outline" size={20} color={colors.accent} />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.credibilityScoreCard}>
@@ -622,12 +622,12 @@ export default function StatisticsScreen() {
                 onPress={() => setShowStatusLadder(true)}
               >
                 <View style={styles.statusBoxContent}>
-                  <Ionicons name={currentStatus.icon as any} size={32} color={currentStatus.color} />
+                  <MaterialCommunityIcons name={currentStatus.icon as any} size={32} color={currentStatus.color} />
                   <View style={styles.statusTextContainer}>
                     <Text style={styles.statusBoxLabel}>Your Status</Text>
                     <Text style={styles.statusBoxValue}>{currentStatus.name}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
+                  <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
                 </View>
               </TouchableOpacity>
             </>
@@ -662,7 +662,7 @@ export default function StatisticsScreen() {
               {/* Group Capacity */}
               <View style={styles.capacityBox}>
                 <View style={styles.capacityHeader}>
-                  <Ionicons name="people" size={28} color={colors.accent} />
+                  <MaterialCommunityIcons name="account-group" size={28} color={colors.accent} />
                   <View style={styles.capacityTextContainer}>
                     <Text style={styles.capacityLabel}>Group Capacity</Text>
                     <Text style={styles.capacityValue}>
@@ -718,7 +718,7 @@ export default function StatisticsScreen() {
                           </View>
                           <View style={styles.leaderboardRight}>
                             <Text style={styles.leaderboardScore}>{member.credibility}</Text>
-                            <Ionicons
+                            <MaterialCommunityIcons
                               name={getGoalIcon(member.goalType)}
                               size={24}
                               color={colors.accent}
@@ -740,7 +740,7 @@ export default function StatisticsScreen() {
           {/* Bottom Section */}
           {!hasGoal && viewMode === 'personal' && (
             <View style={styles.bottomSection}>
-              <Ionicons name="flag-outline" size={48} color={colors.textMuted} />
+              <MaterialCommunityIcons name="flag-outline" size={48} color={colors.textMuted} />
               <Text style={styles.placeholderText}>Set a goal to track your progress</Text>
             </View>
           )}
@@ -762,28 +762,28 @@ export default function StatisticsScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>How to Improve Your Credibility</Text>
                 <TouchableOpacity onPress={() => setShowCredibilityInfo(false)}>
-                  <Ionicons name="close-circle" size={28} color={colors.textMuted} />
+                  <MaterialCommunityIcons name="close-circle" size={28} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               <View style={styles.modalBody}>
                 <View style={styles.infoItem}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={24} color={colors.accent} />
                   <Text style={styles.infoText}>Complete your goals consistently every week</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={24} color={colors.accent} />
                   <Text style={styles.infoText}>Upload proof of completion for your activities</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={24} color={colors.accent} />
                   <Text style={styles.infoText}>Maintain streaks by staying active daily</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={24} color={colors.accent} />
                   <Text style={styles.infoText}>Engage with your accountability group members</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
+                  <MaterialCommunityIcons name="check-circle" size={24} color={colors.accent} />
                   <Text style={styles.infoText}>Avoid missing scheduled activities</Text>
                 </View>
               </View>
@@ -807,7 +807,7 @@ export default function StatisticsScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Status Ladder</Text>
                 <TouchableOpacity onPress={() => setShowStatusLadder(false)}>
-                  <Ionicons name="close-circle" size={28} color={colors.textMuted} />
+                  <MaterialCommunityIcons name="close-circle" size={28} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               <View style={styles.modalBody}>
@@ -821,7 +821,7 @@ export default function StatisticsScreen() {
                     ]}
                   >
                     <View style={styles.statusLadderLeft}>
-                      <Ionicons name={status.icon as any} size={32} color={status.color} />
+                      <MaterialCommunityIcons name={status.icon as any} size={32} color={status.color} />
                       <View>
                         <Text style={[
                           styles.statusLadderName,
