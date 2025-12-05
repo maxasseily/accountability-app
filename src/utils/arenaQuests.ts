@@ -7,12 +7,14 @@ import type { ArenaQuest, ArenaQuestWithProfiles, QuestType } from '../types/are
 export async function sendArenaQuestRequest(
   groupId: string,
   receiverId: string,
-  questType: QuestType
+  questType: QuestType,
+  mojoStake?: number
 ): Promise<string> {
   const { data, error } = await supabase.rpc('send_arena_quest_request', {
     p_group_id: groupId,
     p_receiver_id: receiverId,
     p_quest_type: questType,
+    p_mojo_stake: mojoStake || 0,
   });
 
   if (error) {
@@ -160,4 +162,84 @@ export function formatQuestDisplay(quest: ArenaQuestWithProfiles): string {
     default:
       return `${senderName} and ${receiverName} are on a quest`;
   }
+}
+
+/**
+ * Calculate odds for a prophecy or curse based on receiver's credibility
+ */
+export function calculateOdds(questType: QuestType, receiverCredibility: number): number {
+  if (questType === 'prophecy') {
+    // Prophecy: betting receiver will succeed (higher credibility = lower odds)
+    if (receiverCredibility <= 0) return 100;
+    if (receiverCredibility >= 100) return 1;
+    return 100 / receiverCredibility;
+  } else if (questType === 'curse') {
+    // Curse: betting receiver will fail (higher credibility = higher odds needed)
+    if (receiverCredibility >= 100) return 100;
+    if (receiverCredibility <= 0) return 1;
+    return 100 / (100 - receiverCredibility);
+  }
+  return 0;
+}
+
+/**
+ * Calculate potential payout for a bet
+ * Returns total payout including stake return: stake * (1 + odds)
+ * So 1:1 odds with 10 mojo stake = 20 mojo total (10 stake + 10 winnings)
+ */
+export function calculatePotentialPayout(mojoStake: number, odds: number): number {
+  return mojoStake * (1 + odds);
+}
+
+/**
+ * Check if an identical quest already exists between two users
+ * Returns the existing quest if found, null otherwise
+ */
+export async function checkExistingQuest(
+  groupId: string,
+  senderId: string,
+  receiverId: string,
+  questType: QuestType
+): Promise<ArenaQuest | null> {
+  const { data, error } = await supabase
+    .from('arena_quests')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('sender_id', senderId)
+    .eq('receiver_id', receiverId)
+    .eq('quest_type', questType)
+    .in('status', ['pending', 'accepted'])
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking existing quest:', error);
+    return null;
+  }
+
+  return data as ArenaQuest | null;
+}
+
+/**
+ * Get total mojo staked in pending prophecy/curse quests for a user
+ * This is mojo that's been requested but not yet accepted/rejected
+ */
+export async function getPendingMojoStakes(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('arena_quests')
+    .select('mojo_stake')
+    .eq('sender_id', userId)
+    .eq('status', 'pending')
+    .in('quest_type', ['prophecy', 'curse']);
+
+  if (error) {
+    console.error('Error fetching pending mojo stakes:', error);
+    return 0;
+  }
+
+  if (!data || data.length === 0) {
+    return 0;
+  }
+
+  // Sum up all pending stakes
+  return data.reduce((total, quest) => total + (quest.mojo_stake || 0), 0);
 }
