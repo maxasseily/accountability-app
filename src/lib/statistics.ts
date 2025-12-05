@@ -8,6 +8,7 @@ export function mapRowToUserStatistics(row: any): UserStatistics {
     credibility: row.credibility,
     lifetimeGoalsLogged: row.lifetime_goals_logged,
     mojo: row.mojo,
+    userRank: row.user_rank ?? 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -18,6 +19,7 @@ export interface GroupMemberStats {
   fullName: string | null;
   credibility: number;
   subActivity: SubActivity | null;
+  userRank: number;
   isCurrentUser: boolean;
 }
 
@@ -53,6 +55,7 @@ export async function getUserStatistics(userId: string): Promise<UserStatistics 
         credibility: 50,
         lifetimeGoalsLogged: 0,
         mojo: 0,
+        userRank: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -109,7 +112,7 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
       .in('id', userIds),
     supabase
       .from('user_statistics')
-      .select('user_id, credibility')
+      .select('user_id, credibility, user_rank')
       .in('user_id', userIds),
     supabase
       .from('user_goals')
@@ -123,17 +126,21 @@ export async function getGroupMemberStats(groupId: string, currentUserId: string
 
   // Create lookup maps
   const profilesMap = new Map(profilesResult.data?.map(p => [p.id, p.full_name]) || []);
-  const statisticsMap = new Map(statisticsResult.data?.map(s => [s.user_id, s.credibility]) || []);
+  const statisticsMap = new Map(statisticsResult.data?.map(s => [s.user_id, { credibility: s.credibility, userRank: s.user_rank ?? 1 }]) || []);
   const goalsMap = new Map(goalsResult.data?.map(g => [g.user_id, g.sub_activity]) || []);
 
   // Combine the data
-  const result = userIds.map(userId => ({
-    userId,
-    fullName: profilesMap.get(userId) || 'Unknown',
-    credibility: statisticsMap.get(userId) || 50,
-    subActivity: goalsMap.get(userId) || null,
-    isCurrentUser: userId === currentUserId,
-  }));
+  const result = userIds.map(userId => {
+    const stats = statisticsMap.get(userId) || { credibility: 50, userRank: 1 };
+    return {
+      userId,
+      fullName: profilesMap.get(userId) || 'Unknown',
+      credibility: stats.credibility,
+      userRank: stats.userRank,
+      subActivity: goalsMap.get(userId) || null,
+      isCurrentUser: userId === currentUserId,
+    };
+  });
 
   // Sort by credibility descending
   return result.sort((a, b) => b.credibility - a.credibility);

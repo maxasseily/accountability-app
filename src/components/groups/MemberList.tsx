@@ -8,6 +8,8 @@ import { getLatestPhotoForUser, type DailyPhoto } from '../../utils/dailyPhoto';
 import { useGoal } from '../../context/GoalContext';
 import type { UserGoal } from '../../types/goals';
 import { getSubActivityConfig } from '../../utils/goalConfig';
+import { getUserStatistics } from '../../lib/statistics';
+import { getUserRank } from '../../types/ranks';
 
 interface MemberListProps {
   members: GroupMemberWithProfile[];
@@ -31,6 +33,8 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
   const [memberGoal, setMemberGoal] = useState<UserGoal | null>(null);
   const [isLoadingGoal, setIsLoadingGoal] = useState(true);
+  const [rankName, setRankName] = useState<string | null>(null);
+  const [isLoadingRank, setIsLoadingRank] = useState(true);
   const { getUserGoal } = useGoal();
 
   // Load the member's latest photo
@@ -59,11 +63,28 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
     }
   }, [member.user_id, getUserGoal]);
 
-  // Load photo and goal on mount or when refresh is triggered
+  // Load the member's rank
+  const loadRank = useCallback(async () => {
+    try {
+      setIsLoadingRank(true);
+      const stats = await getUserStatistics(member.user_id);
+      if (stats) {
+        const rank = getUserRank(stats.userRank);
+        setRankName(rank.name);
+      }
+    } catch (error) {
+      console.error('Error loading member rank:', error);
+    } finally {
+      setIsLoadingRank(false);
+    }
+  }, [member.user_id]);
+
+  // Load photo, goal, and rank on mount or when refresh is triggered
   useEffect(() => {
     loadPhoto();
     loadGoal();
-  }, [loadPhoto, loadGoal, refreshToken]);
+    loadRank();
+  }, [loadPhoto, loadGoal, loadRank, refreshToken]);
 
   return (
     <View style={styles.memberItem}>
@@ -98,9 +119,11 @@ function MemberItem({ member, isCurrentUser, onPhotoPress, refreshToken }: Membe
 
       <View style={styles.memberInfo}>
         <Text style={styles.memberName}>{displayName}</Text>
-        {profile.rank && (
-          <Text style={styles.memberRank}>{profile.rank}</Text>
-        )}
+        {isLoadingRank ? (
+          <ActivityIndicator size="small" color={colors.textMuted} style={{ alignSelf: 'flex-start' }} />
+        ) : rankName ? (
+          <Text style={styles.memberRank}>{rankName}</Text>
+        ) : null}
       </View>
 
       {/* Goal Progress */}
