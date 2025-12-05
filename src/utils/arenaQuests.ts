@@ -95,7 +95,7 @@ export async function getAcceptedQuestsForGroup(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -109,8 +109,8 @@ export async function getAcceptedQuestsForGroup(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: profileMap.get(quest.receiver_id) || { full_name: null, email: 'Unknown' },
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.receiver_id) || { username: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
 
@@ -145,7 +145,7 @@ export async function getPendingQuestsForUser(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -159,8 +159,8 @@ export async function getPendingQuestsForUser(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: profileMap.get(quest.receiver_id) || { full_name: null, email: 'Unknown' },
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.receiver_id) || { username: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
 
@@ -169,9 +169,9 @@ export async function getPendingQuestsForUser(
  */
 export function formatQuestDisplay(quest: ArenaQuestWithProfiles): string {
   const senderName =
-    quest.sender_profile.full_name || quest.sender_profile.email.split('@')[0];
+    quest.sender_profile.username || quest.sender_profile.email.split('@')[0];
   const receiverName =
-    quest.receiver_profile.full_name || quest.receiver_profile.email.split('@')[0];
+    quest.receiver_profile.username || quest.receiver_profile.email.split('@')[0];
 
   switch (quest.quest_type) {
     case 'alliance':
@@ -464,7 +464,7 @@ export async function getPendingSpeculationsForGroup(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -478,8 +478,8 @@ export async function getPendingSpeculationsForGroup(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: { full_name: null, email: 'Pending' }, // No receiver yet
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: { username: null, email: 'Pending' }, // No receiver yet
   })) as ArenaQuestWithProfiles[];
 }
 
@@ -516,7 +516,7 @@ export async function getAcceptedSpeculationsForGroup(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -530,8 +530,8 @@ export async function getAcceptedSpeculationsForGroup(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { username: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
 
@@ -570,7 +570,7 @@ export async function getResolvedSpeculationsForGroup(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -584,8 +584,8 @@ export async function getResolvedSpeculationsForGroup(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { full_name: null, email: 'Unknown' },
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.speculation_accepter_id || quest.receiver_id) || { username: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
 
@@ -620,7 +620,7 @@ export async function getCompletedQuestsForGroup(
   // Fetch profiles for all users
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, username, email')
     .in('id', userIds);
 
   if (profilesError) {
@@ -634,7 +634,7 @@ export async function getCompletedQuestsForGroup(
   // Combine quests with profiles
   return quests.map(quest => ({
     ...quest,
-    sender_profile: profileMap.get(quest.sender_id) || { full_name: null, email: 'Unknown' },
-    receiver_profile: profileMap.get(quest.receiver_id) || { full_name: null, email: 'Unknown' },
+    sender_profile: profileMap.get(quest.sender_id) || { username: null, email: 'Unknown' },
+    receiver_profile: profileMap.get(quest.receiver_id) || { username: null, email: 'Unknown' },
   })) as ArenaQuestWithProfiles[];
 }
