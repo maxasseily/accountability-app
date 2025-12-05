@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { RANK_LADDER, getUserRank, isInWarningZone, getMinCredibilityToMaintainRank } from '../../src/types/ranks';
 import { upgradeUserRank, checkCanUpgradeRank } from '../../src/lib/ranks';
 import type { UserStatistics } from '../../src/types/statistics';
+import BadgeGrid from '../../src/components/badges/BadgeGrid';
 
 // Generate fake credibility data for different time periods
 const generateCredibilityData = (period: TimePeriod) => {
@@ -882,14 +883,8 @@ export default function StatisticsScreen() {
               )}
 
               {/* Badges Tab Content */}
-              {personalTab === 'badges' && (
-                <View style={styles.comingSoonContainer}>
-                  <MaterialCommunityIcons name="trophy-outline" size={64} color={colors.textMuted} />
-                  <Text style={styles.comingSoonText}>Coming Soon</Text>
-                  <Text style={styles.comingSoonSubtext}>
-                    Badge collection and achievements will be available in a future update
-                  </Text>
-                </View>
+              {personalTab === 'badges' && user && (
+                <BadgeGrid userId={user.id} />
               )}
             </>
           ) : (
