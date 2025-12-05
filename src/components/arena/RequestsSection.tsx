@@ -70,7 +70,7 @@ export default function RequestsSection({ currentUserId, refreshToken, onRefresh
     if (isSender) {
       // Sent request - show who we're waiting for
       const receiverName =
-        request.receiver_profile.full_name ||
+        request.receiver_profile.username ||
         request.receiver_profile.email.split('@')[0];
 
       switch (request.quest_type) {
@@ -88,7 +88,7 @@ export default function RequestsSection({ currentUserId, refreshToken, onRefresh
     } else {
       // Received request - show who sent it
       const senderName =
-        request.sender_profile.full_name ||
+        request.sender_profile.username ||
         request.sender_profile.email.split('@')[0];
 
       switch (request.quest_type) {

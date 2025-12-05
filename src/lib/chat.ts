@@ -39,11 +39,11 @@ export async function sendEmojiAction(
   // Get user profile for display name
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email')
+    .select('username, email')
     .eq('id', user.id)
     .single();
 
-  const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Someone';
+  const displayName = profile?.username || profile?.email?.split('@')[0] || 'Someone';
 
   // Generate message content based on emoji type
   const messages = {
