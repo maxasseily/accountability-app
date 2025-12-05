@@ -6,10 +6,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import GradientBackground from '../../src/components/ui/GradientBackground';
+import ReactionBar from '../../src/components/feed/ReactionBar';
 import { colors } from '../../src/utils/colors';
 import { spacing } from '../../src/utils/spacing';
 import { getGroupFeedPosts, subscribeToFeedChanges, FeedPost } from '../../src/utils/feed';
 import { getPendingRequests } from '../../src/utils/friends';
+import { getPostCommentCount } from '../../src/lib/comments';
 import { useAuth } from '../../src/context/AuthContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -22,11 +24,22 @@ export default function FeedScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   const loadPosts = useCallback(async () => {
     try {
       const feedPosts = await getGroupFeedPosts();
       setPosts(feedPosts);
+
+      // Load comment counts for all posts
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        feedPosts.map(async (post) => {
+          const count = await getPostCommentCount(post.id);
+          counts[post.id] = count;
+        })
+      );
+      setCommentCounts(counts);
     } catch (error) {
       console.error('Error loading feed posts:', error);
     } finally {
@@ -53,6 +66,21 @@ export default function FeedScreen() {
       setIsRefreshing(false);
     }
   }, [loadPosts]);
+
+  const handleCommentPress = (post: FeedPost) => {
+    router.push({
+      pathname: '/(app)/post-comments',
+      params: {
+        postId: post.id,
+        postUserId: post.user_id,
+        postUserName: post.profile.username,
+        postUserAvatar: post.profile.avatar_url || '',
+        postPhotoUrl: post.photo_url,
+        postDate: post.date,
+        postBadgeIcon: post.profile.displayed_badge?.icon || '',
+      },
+    });
+  };
 
   // Load posts on mount and subscribe to changes
   useEffect(() => {
@@ -189,6 +217,20 @@ export default function FeedScreen() {
                     resizeMode="cover"
                   />
                 </Pressable>
+
+                {/* Reactions */}
+                <ReactionBar postId={post.id} />
+
+                {/* Comment Button */}
+                <TouchableOpacity
+                  style={styles.commentButton}
+                  onPress={() => handleCommentPress(post)}
+                >
+                  <MaterialCommunityIcons name="comment-outline" size={20} color={colors.accent} />
+                  <Text style={styles.commentButtonText}>
+                    {commentCounts[post.id] || 0} {commentCounts[post.id] === 1 ? 'Comment' : 'Comments'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -377,6 +419,25 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 300,
     borderRadius: 12,
+    marginBottom: 8,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: colors.glassLight,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  commentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
   },
   modalContainer: {
     flex: 1,
