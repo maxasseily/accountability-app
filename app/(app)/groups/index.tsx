@@ -236,7 +236,20 @@ export default function GroupsScreen() {
       handleRefresh();
     } catch (error) {
       console.error('Error creating speculation:', error);
-      Alert.alert('Error', 'Failed to create speculation. Please try again.');
+
+      // Check for specific error messages
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('3 active speculation quests')) {
+        Alert.alert(
+          'Speculation Limit Reached',
+          'You can only have up to 3 active speculation quests at a time. Wait for one to be accepted or resolved before creating a new one.'
+        );
+      } else if (errorMessage.includes('Insufficient mojo')) {
+        Alert.alert('Insufficient Mojo', 'You don\'t have enough mojo to create this speculation.');
+      } else {
+        Alert.alert('Error', 'Failed to create speculation. Please try again.');
+      }
     } finally {
       setIsCreatingSpeculation(false);
     }

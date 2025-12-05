@@ -787,59 +787,64 @@ end $$;
 -- These will showcase different quest types between the 3 group members (Alice, Bob, Charlie)
 
 -- Alice and Bob are in an alliance (accepted)
-insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+insert into public.arena_quests (id, group_id, sender_id, receiver_id, quest_type, status, created_at)
 values (
+  '20000000-0000-0000-0000-000000000001'::uuid,  -- Fixed ID
   '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
   '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (sender)
   '00000000-0000-0000-0000-000000000002'::uuid,  -- Bob (receiver)
   'alliance',
   'accepted',
   now() - interval '2 days'
-) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+) on conflict (id) do nothing;
 
 -- Bob and Charlie are battling it out (accepted)
-insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+insert into public.arena_quests (id, group_id, sender_id, receiver_id, quest_type, status, created_at)
 values (
+  '20000000-0000-0000-0000-000000000002'::uuid,  -- Fixed ID
   '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
   '00000000-0000-0000-0000-000000000002'::uuid,  -- Bob (sender)
   '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (receiver)
   'battle',
   'accepted',
   now() - interval '1 day'
-) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+) on conflict (id) do nothing;
 
 -- Alice is prophesying about Charlie (accepted)
-insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+insert into public.arena_quests (id, group_id, sender_id, receiver_id, quest_type, status, created_at)
 values (
+  '20000000-0000-0000-0000-000000000003'::uuid,  -- Fixed ID
   '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
   '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (sender)
   '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (receiver)
   'prophecy',
   'accepted',
   now() - interval '3 days'
-) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+) on conflict (id) do nothing;
 
 -- Charlie has put a curse on Alice (accepted)
-insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+insert into public.arena_quests (id, group_id, sender_id, receiver_id, quest_type, status, created_at)
 values (
+  '20000000-0000-0000-0000-000000000004'::uuid,  -- Fixed ID
   '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
   '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (sender)
   '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (receiver)
   'curse',
   'accepted',
   now() - interval '4 days'
-) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+) on conflict (id) do nothing;
 
 -- Pending request: Charlie sent a battle request to Alice (pending)
-insert into public.arena_quests (group_id, sender_id, receiver_id, quest_type, status, created_at)
+insert into public.arena_quests (id, group_id, sender_id, receiver_id, quest_type, status, created_at)
 values (
+  '20000000-0000-0000-0000-000000000005'::uuid,  -- Fixed ID
   '10000000-0000-0000-0000-000000000001'::uuid,  -- Morning Warriors group
   '00000000-0000-0000-0000-000000000003'::uuid,  -- Charlie (sender)
   '00000000-0000-0000-0000-000000000001'::uuid,  -- Alice (receiver)
   'battle',
   'pending',
   now() - interval '12 hours'
-) on conflict (group_id, sender_id, receiver_id, quest_type, status) where status = 'pending' do nothing;
+) on conflict (id) do nothing;
 
 -- Update user_statistics with varying mojo amounts (between 5 and 100)
 -- Alice: 95 mojo (high performer)

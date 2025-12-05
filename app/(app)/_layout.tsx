@@ -121,24 +121,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="arena"
-        options={{
-          title: 'Arena',
-          tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
-              name={focused ? "shield" : "shield-outline"}
-              size={focused ? 26 : 24}
-              color={color}
-              style={{
-                textShadowColor: focused ? colors.accent : 'transparent',
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: focused ? 8 : 0,
-              }}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="statistics"
         options={{
           title: 'Statistics',
