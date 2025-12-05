@@ -7,7 +7,7 @@ import { colors } from '../../src/utils/colors';
 import { useGoal } from '../../src/context/GoalContext';
 import { useState } from 'react';
 import { ActivityType, SubActivity } from '../../src/types/goals';
-import { getSubActivityConfig } from '../../src/utils/goalConfig';
+import { getSubActivityConfig, getFrequencyNoun } from '../../src/utils/goalConfig';
 
 type FrequencyOption = 2 | 3 | 4;
 
@@ -58,7 +58,7 @@ export default function FrequencySelectionScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>How Often?</Text>
-        <Text style={styles.subtitle}>Choose your weekly {subActivityConfig?.actionNoun} frequency</Text>
+        <Text style={styles.subtitle}>Choose your weekly {getFrequencyNoun(subActivity)} frequency</Text>
 
         <View style={styles.optionsContainer}>
           {frequencies.map(({ value, enabled }) => (
