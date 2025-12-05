@@ -60,7 +60,6 @@ function getProgressBorderColor(completed: number): string {
 export default function HomeScreen() {
   const { logout, user } = useAuth();
   const { goal, hasGoal, isLoading, getProgress, incrementProgress, canLogToday } = useGoal();
-  const [isLoggingRun, setIsLoggingRun] = useState(false);
   const [todayPhoto, setTodayPhoto] = useState<DailyPhoto | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(true);
@@ -291,70 +290,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLogRun = async () => {
-    if (!canLogToday()) {
-      Alert.alert('Already Logged', 'You have already logged your goal today! Come back tomorrow.');
-      return;
-    }
-
-    try {
-      setIsLoggingRun(true);
-      const result = await incrementProgress();
-
-      // Show mojo gained feedback
-      const mojoMessage = result.weeklyGoalCompleted
-        ? `🎉 Weekly goal completed! +${result.mojoGained} mojo (+5 for logging + 10 bonus!)`
-        : `+${result.mojoGained} mojo earned!`;
-
-      // Show main success alert
-      Alert.alert(
-        'Success!',
-        `Goal logged successfully!\n\n${mojoMessage}\n\nKeep up the great work!`,
-        [{
-          text: 'OK', onPress: async () => {
-            // Check for alliance bonus after main alert is dismissed
-            if (result.hasAllianceBonus && user) {
-              // Fetch the alliance notification that was just created
-              try {
-                const notifications = await getUnreadNotifications(user.id);
-                const allianceNotification = notifications.find(n => n.notificationType === 'alliance_success');
-
-                if (allianceNotification) {
-                  setTimeout(() => {
-                    Alert.alert(
-                      allianceNotification.title,
-                      allianceNotification.message,
-                      [{
-                        text: 'Amazing!', onPress: async () => {
-                          // Mark as read
-                          try {
-                            await markNotificationAsRead(allianceNotification.id);
-                          } catch (error) {
-                            console.error('Error marking notification as read:', error);
-                          }
-                        }
-                      }]
-                    );
-                  }, 300);
-                }
-              } catch (error) {
-                console.error('Error fetching alliance notification:', error);
-              }
-            }
-          }
-        }]
-      );
-    } catch (error) {
-      console.error('Error logging goal:', error);
-      if (error instanceof Error && error.message === 'Already logged a run today') {
-        Alert.alert('Already Logged', 'You have already logged your goal today!');
-      } else {
-        Alert.alert('Error', 'Failed to log goal. Please try again.');
-      }
-    } finally {
-      setIsLoggingRun(false);
-    }
-  };
 
   const progress = getProgress();
   const canLog = canLogToday();
@@ -427,8 +362,8 @@ export default function HomeScreen() {
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <Text style={styles.placeholderIcon}>📷</Text>
-                  <Text style={styles.placeholderText}>Tap to Upload</Text>
-                  <Text style={styles.placeholderSubtext}>Required for daily accountability</Text>
+                  <Text style={styles.placeholderText}>Tap to Log Your Activity</Text>
+                  <Text style={styles.placeholderSubtext}>Upload a photo to mark today complete</Text>
                 </View>
               )}
 
@@ -513,35 +448,25 @@ export default function HomeScreen() {
                     ))}
                   </View>
 
-                  {/* Log Run Button */}
-                  <TouchableOpacity
-                    style={[styles.logRunButton, !canLog && styles.logRunButtonDisabled]}
-                    onPress={handleLogRun}
-                    disabled={!canLog || isLoggingRun}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={canLog ? [colors.accent, colors.accentGlow] : [colors.glassDark, colors.glassDark]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.logRunGradient}
-                    >
-                      {isLoggingRun ? (
-                        <ActivityIndicator size="small" color={colors.textPrimary} />
-                      ) : (
-                        <>
-                          <MaterialCommunityIcons
-                            name={canLog ? "check-circle" : "check-all"}
-                            size={24}
-                            color={colors.textPrimary}
-                          />
-                          <Text style={styles.logRunText}>
-                            {canLog ? `Log ${getLogActionText(goal.subActivity)}` : 'Logged Today!'}
-                          </Text>
-                        </>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  {/* Activity Status Indicator */}
+                  <View style={styles.activityStatusContainer}>
+                    <View style={[
+                      styles.activityStatus,
+                      !canLog && styles.activityStatusLogged
+                    ]}>
+                      <MaterialCommunityIcons
+                        name={!canLog ? "check-circle" : "alert-circle-outline"}
+                        size={24}
+                        color={!canLog ? colors.accent : colors.textMuted}
+                      />
+                      <Text style={[
+                        styles.activityStatusText,
+                        !canLog && styles.activityStatusTextLogged
+                      ]}>
+                        {!canLog ? 'Activity logged today!' : 'Upload a photo to log activity'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
 
                 {/* Change Goal Button */}
@@ -848,27 +773,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
-  logRunButton: {
-    width: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
+  activityStatusContainer: {
     marginTop: 20,
   },
-  logRunButtonDisabled: {
-    opacity: 0.6,
-  },
-  logRunGradient: {
+  activityStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    gap: 12,
+    backgroundColor: colors.glassDark,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
   },
-  logRunText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
+  activityStatusLogged: {
+    backgroundColor: colors.glassLight,
+    borderColor: colors.accent,
+  },
+  activityStatusText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  activityStatusTextLogged: {
+    color: colors.accent,
   },
   changeGoalButton: {
     flexDirection: 'row',
