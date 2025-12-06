@@ -248,6 +248,8 @@ cp .env.example .env
 
 > **Critical:** The `.env` file is already set up to be ignored by git automatically.
 
+> **Tip:** Add your AI assistant tokens here too—set `CLAUDE_CODE_OAUTH_TOKEN`, `CODEX_API_KEY`, and `OPENAI_API_KEY` (same value) so the devcontainer picks them up and you stay signed in.
+
 **Port Forwarding (Automatic):**
 The devcontainer automatically forwards these ports from the container to your computer's network interface:
 - `8081` - Metro Bundler (Expo dev server)
@@ -902,6 +904,7 @@ The `daily-photos` storage bucket is **automatically created** by database migra
 Want to dig deeper? Check these guides:
 
 - **[CLAUDE.md](./CLAUDE.md)** - Complete technical architecture and development guide
+- **[CODEX.md](./CODEX.md)** - Codex CLI context and project guidance
 - **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Database schema and local development setup
 - **[SUPABASE_WORKFLOW.md](./SUPABASE_WORKFLOW.md)** - Team workflow for database migrations (detailed)
 
